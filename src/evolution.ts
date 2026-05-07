@@ -12,7 +12,7 @@ import type {
 } from './types.js';
 import { loadProfile } from './profile.js';
 import { getSignalCounts, getRecentSignals } from './signals.js';
-import { readAllSoulFiles, writeSoulFile } from './soul.js';
+import { appendJournal, replaceJournalFragment, removeJournalFragment } from './journal.js';
 
 /**
  * Evolution engine -- proposes and applies personality changes
@@ -173,23 +173,22 @@ export function applyProposal(config: PersonaConfig, proposalId: string): { succ
   const proposal = proposals[idx];
   if (proposal.status !== 'pending') return { success: false, message: `Proposal is already ${proposal.status}.` };
 
-  const files = readAllSoulFiles(config);
-  const current = files[proposal.target] ?? '';
-
+  // Apply to the journal namespace, never to the user-edited soul. Soul/
+  // is user territory — Persona only writes here. buildSoulContext layers
+  // both at prompt-build time, so behavior is unchanged from the caller's
+  // perspective. The user can clear the journal without losing soul edits.
   if (proposal.action === 'add') {
-    writeSoulFile(config, proposal.target, current.trimEnd() + '\n\n' + proposal.content + '\n');
+    appendJournal(config, proposal.target, proposal.content);
   } else if (proposal.action === 'replace' && proposal.oldContent) {
-    const updated = current.replace(proposal.oldContent, proposal.content);
-    writeSoulFile(config, proposal.target, updated);
+    replaceJournalFragment(config, proposal.target, proposal.oldContent, proposal.content);
   } else if (proposal.action === 'remove' && proposal.oldContent) {
-    const updated = current.replace(proposal.oldContent, '').replace(/\n{3,}/g, '\n\n');
-    writeSoulFile(config, proposal.target, updated);
+    removeJournalFragment(config, proposal.target, proposal.oldContent);
   }
 
   proposals[idx].status = 'applied';
   saveProposals(config, proposals);
 
-  return { success: true, message: `Applied ${proposal.type} to ${proposal.target}: "${proposal.content.slice(0, 80)}"` };
+  return { success: true, message: `Applied ${proposal.type} to journal/${proposal.target}: "${proposal.content.slice(0, 80)}"` };
 }
 
 export function rejectProposal(config: PersonaConfig, proposalId: string): { success: boolean; message: string } {

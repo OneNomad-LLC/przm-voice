@@ -76,17 +76,35 @@ export function initSoulFiles(config: PersonaConfig): SoulFiles {
 
 // ── Build prompt context from soul files ────────────────────────────
 
-export function buildSoulContext(files: SoulFiles): string {
+export function buildSoulContext(
+  files: SoulFiles,
+  layers?: { journal?: SoulFiles; role?: string },
+): string {
   const sections: string[] = [];
 
-  if (files.personality) {
-    sections.push(`## Personality\n${files.personality.trim()}`);
-  }
-  if (files.style) {
-    sections.push(`## Communication Style\n${files.style.trim()}`);
-  }
-  if (files.skill) {
-    sections.push(`## Working Style\n${files.skill.trim()}`);
+  // Soul + journal layered per-section. Journal is Persona's auto-derived
+  // notes (from applied evolution proposals); soul is user-territory.
+  // Showing them together keeps the prompt coherent without commingling
+  // ownership in the underlying files.
+  const merge = (base: string, journal: string | undefined, header: string): string => {
+    const baseT = base.trim();
+    const jT = (journal ?? '').trim();
+    if (!baseT && !jT) return '';
+    const body = jT ? `${baseT}${baseT ? '\n\n' : ''}<!-- learned -->\n${jT}` : baseT;
+    return `## ${header}\n${body}`;
+  };
+
+  const personality = merge(files.personality, layers?.journal?.personality, 'Personality');
+  const style = merge(files.style, layers?.journal?.style, 'Communication Style');
+  const skill = merge(files.skill, layers?.journal?.skill, 'Working Style');
+
+  if (personality) sections.push(personality);
+  if (style) sections.push(style);
+  if (skill) sections.push(skill);
+
+  if (layers?.role) {
+    const roleT = layers.role.trim();
+    if (roleT) sections.push(`## Active Role\n${roleT}`);
   }
 
   if (sections.length === 0) return '';

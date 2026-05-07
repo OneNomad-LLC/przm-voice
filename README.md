@@ -23,17 +23,17 @@ No API keys needed. No cloud services. Two runtime dependencies and some JSON on
 
 ## How It Works
 
-### Soul Files
+### Soul, Role, Journal
 
-The personality is stored in three files at `~/.claude/persona/soul/`. I call them "soul files."
+Persona separates the personality into three layers, each with a clear ownership boundary. They get composed at prompt-build time but live in different files so it's never ambiguous what came from where.
 
-**PERSONALITY.md** covers who the agent is. Tone, humor, confidence, directness. There's a small set of core principles baked in that can't be overwritten (honesty, real engagement on hard topics, harm prevention), and everything else gets written by the system over time as it learns what clicks with you.
+**Soul** lives at `~/.claude/persona/soul/` and is *user territory*. Three files — PERSONALITY.md, STYLE.md, SKILL.md — that you edit directly via `persona_edit` or your text editor. Persona never auto-writes here. PERSONALITY.md covers who the agent is (tone, humor, directness). STYLE.md covers how it communicates (formatting, verbosity, emoji). SKILL.md covers how it works (when to ask permission, which topics get depth). A small set of core principles is baked into the defaults — honesty, real engagement on hard topics, harm prevention — and you can extend or overwrite the rest.
 
-**STYLE.md** covers how it communicates. Formatting, verbosity, emoji, things to avoid, things to keep doing. If you tell the agent "stop summarizing at the end" enough times, that ends up here.
+**Role** is a domain overlay layered on top of the soul. Soul defines *who* the agent is; role defines *what* it's doing right now. Five roles ship bundled — `developer`, `designer`, `pm`, `writer`, `researcher` — and you can drop your own at `~/.claude/persona/roles/<name>/ROLE.md` to override or add new ones. Set the active role globally with `persona_role_set`, or override per call with `persona_context({ role })`. Roles are user territory; Persona never auto-writes them.
 
-**SKILL.md** covers how it works. When to ask permission vs. when to just go. Which topics deserve deep dives, which ones get quick answers. This one builds from what you accept, reject, and correct.
+**Journal** lives at `~/.claude/persona/journal/` and is *Persona territory*. When you apply an evolution proposal, the content lands in the journal — never in the soul. The journal is layered into the prompt right alongside the matching soul section, so the agent sees a unified personality, but you can wipe the journal at any time with `persona_journal_clear` without losing your hand-tuned soul edits. This is the same trichotomy [Finch](https://github.com/mattstvartak/finch) uses for its prompt build, and it solves the muddy ownership problem of older persona systems where applied proposals overwrite user-authored files.
 
-They all start mostly empty. A couple of baseline rules like "don't say Great question!" and "read before writing." The rest fills in from real interactions.
+Soul files start mostly empty. A couple of baseline rules like "don't say Great question!" and "read before writing." The rest fills in from real interactions — into the journal, not the soul.
 
 ### Signals
 
@@ -254,7 +254,7 @@ Then point your MCP client at `dist/server.js`:
 
 ## Tools
 
-15 tools across seven groups. The standalone `persona_adapt` and `persona_procedural_sync` were folded into `persona_context` and `persona_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation.
+25 tools across ten groups. The standalone `persona_adapt` and `persona_procedural_sync` were folded into `persona_context` and `persona_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation. 1.0.0 adds the role overlay, journal namespace, and a bundled library of 9 soul presets + 10 role presets ported from Finch.
 
 ### Context
 
@@ -291,6 +291,31 @@ Then point your MCP client at `dist/server.js`:
 | `persona_read` | Read a soul file. |
 | `persona_edit` | Overwrite a soul file directly. Full manual control. |
 | `persona_init` | Initialize defaults. Won't overwrite existing files. |
+
+### Soul Presets (bundled identity templates)
+
+| Tool | What it does |
+|------|-------------|
+| `persona_soul_presets_list` | List the 9 bundled SOUL.md presets ported from Finch (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). |
+| `persona_soul_preset_read` | Read a bundled preset without applying it. |
+| `persona_soul_preset_apply` | Apply a preset by writing its content into PERSONALITY.md. STYLE.md and SKILL.md stay untouched. |
+
+### Roles (domain overlays)
+
+| Tool | What it does |
+|------|-------------|
+| `persona_role_list` | List bundled and user-defined roles, plus the active one. |
+| `persona_role_set` | Activate a role globally. |
+| `persona_role_clear` | Clear the active role; soul-only context resumes. |
+| `persona_role_read` | Read a role file. Returns the user override if present, else the bundled default. |
+| `persona_role_edit` | Override or create a custom role at `dataDir/roles/<name>/ROLE.md`. |
+
+### Journal (Persona's auto-derived notes)
+
+| Tool | What it does |
+|------|-------------|
+| `persona_journal_read` | Read Persona's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
+| `persona_journal_clear` | Wipe the journal without touching the user-edited soul. |
 
 ### Synthesis
 

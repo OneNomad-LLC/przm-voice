@@ -4,6 +4,15 @@ export interface SoulFiles {
     skill: string;
 }
 export declare const SOUL_FILE_NAMES: (keyof SoulFiles)[];
+export interface RoleFile {
+    name: string;
+    content: string;
+}
+export interface JournalFiles {
+    personality: string;
+    style: string;
+    skill: string;
+}
 export type SignalType = 'correction' | 'approval' | 'frustration' | 'elaboration' | 'simplification' | 'code_accepted' | 'code_rejected' | 'regen_request' | 'explicit_feedback' | 'style_correction' | 'praise' | 'abandonment';
 export interface BehavioralSignal {
     id: string;

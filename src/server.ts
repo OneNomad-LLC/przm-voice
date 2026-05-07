@@ -5,6 +5,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { loadConfig } from './config.js';
 import { readSoulFile, readAllSoulFiles, writeSoulFile, initSoulFiles, buildSoulContext } from './soul.js';
+import { readAllJournalFiles, clearJournal } from './journal.js';
+import { listRoles, readRole, writeRole, getActiveRole, setActiveRole } from './role.js';
+import { listSoulPresets, readSoulPreset, applySoulPreset } from './soul-presets.js';
 import { recordSignal, loadSignals, getSignalCounts } from './signals.js';
 import { loadProfile, rebuildProfile } from './profile.js';
 import { getAdaptations, getProfileSummary, setSessionState, getSessionState } from './adaptations.js';
@@ -61,10 +64,18 @@ function processUserMessage(message: string): void {
 
 // ── MCP Server ────────────────────────────────────────────────────
 
-const soulContext = buildSoulContext(soulFiles);
+function buildLayeredContext(roleNameOverride?: string): string {
+  const files = readAllSoulFiles(config);
+  const journal = readAllJournalFiles(config);
+  const activeRole = roleNameOverride ?? getActiveRole(config);
+  const roleContent = activeRole ? readRole(config, activeRole) : '';
+  return buildSoulContext(files, { journal, role: roleContent });
+}
+
+const soulContext = buildLayeredContext();
 
 const server = new McpServer(
-  { name: 'persona', version: '2.1.0' },
+  { name: 'persona', version: '2.3.0' },
   {
     instructions: [
       '# Persona',
@@ -92,9 +103,10 @@ server.registerTool(
       category: z.string().optional().describe('Topic for category-specific adaptations.'),
       userMessage: z.string().optional().describe('Process through brain systems first.'),
       adaptationsOnly: z.boolean().optional().describe('If true, return only adaptations (not soul files).'),
+      role: z.string().optional().describe('Per-call role override (e.g. "developer"). Falls back to active role then no role.'),
     }),
   },
-  async ({ category, userMessage, adaptationsOnly }) => {
+  async ({ category, userMessage, adaptationsOnly, role }) => {
     if (userMessage) processUserMessage(userMessage);
 
     const adaptations = getAdaptations(config, category);
@@ -104,8 +116,7 @@ server.registerTool(
       return text(adaptations || 'No adaptations yet. Record signals to build a profile.');
     }
 
-    const files = readAllSoulFiles(config);
-    const soul = buildSoulContext(files);
+    const soul = buildLayeredContext(role);
     const parts = [soul, adaptations].filter(Boolean);
 
     const brainState = getBrainStateSummary();
@@ -325,6 +336,18 @@ server.registerTool(
         style: files.style ? `${files.style.length} chars` : 'not set',
         skill: files.skill ? `${files.skill.length} chars` : 'not set',
       },
+      journal: (() => {
+        const j = readAllJournalFiles(config);
+        return {
+          personality: j.personality ? `${j.personality.length} chars` : 'empty',
+          style: j.style ? `${j.style.length} chars` : 'empty',
+          skill: j.skill ? `${j.skill.length} chars` : 'empty',
+        };
+      })(),
+      role: {
+        active: getActiveRole(config),
+        available: listRoles(config).map(r => r.name),
+      },
       bridge,
       dataDir: config.dataDir,
     });
@@ -458,6 +481,187 @@ server.registerTool(
       skill: `${files.skill.length} chars`,
       dataDir: config.dataDir,
     });
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// SOUL PRESETS (bundled identity templates ported from Finch)
+// ─────────────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'persona_soul_presets_list',
+  {
+    title: 'List Soul Presets',
+    description: 'List bundled SOUL.md presets (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). Apply one to write its content into PERSONALITY.md.',
+    inputSchema: z.object({}),
+  },
+  async () => {
+    const presets = listSoulPresets();
+    return json({
+      presets: presets.map(p => ({
+        name: p.name,
+        bytes: p.content.length,
+        preview: p.content.split('\n').slice(0, 3).join(' ').slice(0, 160),
+      })),
+    });
+  }
+);
+
+server.registerTool(
+  'persona_soul_preset_read',
+  {
+    title: 'Read Soul Preset',
+    description: 'Read a bundled SOUL.md preset without applying it.',
+    inputSchema: z.object({
+      name: z.string().describe('Preset name (e.g. "coach", "default", "mentor").'),
+    }),
+  },
+  async ({ name }) => {
+    const content = readSoulPreset(name);
+    return text(content || `Preset "${name}" not found.`);
+  }
+);
+
+server.registerTool(
+  'persona_soul_preset_apply',
+  {
+    title: 'Apply Soul Preset',
+    description: "Write a bundled SOUL.md preset into the user's PERSONALITY.md. Replaces existing personality content. STYLE.md and SKILL.md are not touched.",
+    inputSchema: z.object({
+      name: z.string().describe('Preset name to apply.'),
+    }),
+  },
+  async ({ name }) => {
+    const result = applySoulPreset(config, name);
+    if (!result.applied) return json({ error: 'unknown_preset', name });
+    return json({ applied: name, target: 'personality.md', bytes: result.bytes });
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// ROLE LAYER (domain overlays — developer, designer, pm, writer, researcher)
+// ─────────────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'persona_role_list',
+  {
+    title: 'List Roles',
+    description: 'List bundled and user-defined roles. Roles are domain overlays (developer, designer, pm…) layered on top of the soul at prompt-build time.',
+    inputSchema: z.object({}),
+  },
+  async () => {
+    const roles = listRoles(config);
+    const active = getActiveRole(config);
+    return json({
+      active,
+      roles: roles.map(r => ({
+        name: r.name,
+        active: r.name === active,
+        bytes: r.content.length,
+        preview: r.content.split('\n').slice(0, 2).join(' ').slice(0, 120),
+      })),
+    });
+  }
+);
+
+server.registerTool(
+  'persona_role_set',
+  {
+    title: 'Set Active Role',
+    description: 'Activate a role globally. Per-call overrides via persona_context({ role }) bypass this. Pass null to clear.',
+    inputSchema: z.object({
+      name: z.string().describe('Role name (e.g. "developer"). Must exist in bundled roles or dataDir/roles/<name>/ROLE.md.'),
+    }),
+  },
+  async ({ name }) => {
+    const content = readRole(config, name);
+    if (!content) return json({ error: 'unknown_role', name });
+    setActiveRole(config, name);
+    return json({ active: name, bytes: content.length });
+  }
+);
+
+server.registerTool(
+  'persona_role_clear',
+  {
+    title: 'Clear Active Role',
+    description: 'Clear the active role. Subsequent persona_context calls with no role override will return soul-only context.',
+    inputSchema: z.object({}),
+  },
+  async () => {
+    setActiveRole(config, null);
+    return text('Active role cleared.');
+  }
+);
+
+server.registerTool(
+  'persona_role_read',
+  {
+    title: 'Read Role',
+    description: 'Read a role file. Returns the user override if present in dataDir/roles/<name>/ROLE.md, else the bundled default.',
+    inputSchema: z.object({
+      name: z.string().describe('Role name.'),
+    }),
+  },
+  async ({ name }) => {
+    const content = readRole(config, name);
+    return text(content || `Role "${name}" not found.`);
+  }
+);
+
+server.registerTool(
+  'persona_role_edit',
+  {
+    title: 'Edit Role',
+    description: 'Override or create a custom role at dataDir/roles/<name>/ROLE.md. User overrides shadow bundled defaults.',
+    inputSchema: z.object({
+      name: z.string().describe('Role name.'),
+      content: z.string().describe('Markdown content (replaces entire file).'),
+    }),
+  },
+  async ({ name, content }) => {
+    writeRole(config, name, content);
+    return text(`Wrote role "${name}" (${content.length} chars).`);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// JOURNAL (Persona's auto-derived notes — separate from user-edited soul)
+// ─────────────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'persona_journal_read',
+  {
+    title: 'Read Journal',
+    description: "Read Persona's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
+    inputSchema: z.object({
+      file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file. Omit to read all three.'),
+    }),
+  },
+  async ({ file }) => {
+    const all = readAllJournalFiles(config);
+    if (file) return text(all[file] || `Journal ${file} is empty.`);
+    return json({
+      personality: all.personality.length > 0 ? `${all.personality.length} chars` : 'empty',
+      style: all.style.length > 0 ? `${all.style.length} chars` : 'empty',
+      skill: all.skill.length > 0 ? `${all.skill.length} chars` : 'empty',
+      content: all,
+    });
+  }
+);
+
+server.registerTool(
+  'persona_journal_clear',
+  {
+    title: 'Clear Journal',
+    description: "Wipe Persona's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
+    inputSchema: z.object({
+      file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file to clear. Omit to clear all three.'),
+    }),
+  },
+  async ({ file }) => {
+    const cleared = clearJournal(config, file as any);
+    return text(`Cleared ${cleared} journal file(s).`);
   }
 );
 

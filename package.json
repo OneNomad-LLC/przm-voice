@@ -1,12 +1,18 @@
 {
   "name": "@onenomad/persona-mcp",
-  "version": "1.0.0-beta.7",
+  "version": "1.0.0",
   "description": "Persona MCP server for Claude Code -- evolving personality, behavioral signals, style adaptations, and soul file management.",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
     "persona-mcp": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "presets",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "build": "rm -rf dist && tsc",

@@ -8,6 +8,31 @@ export interface SoulFiles {
 
 export const SOUL_FILE_NAMES: (keyof SoulFiles)[] = ['personality', 'style', 'skill'];
 
+// ── Roles ────────────────────────────────────────────────────────────
+// Roles are domain overlays layered on top of the soul. Soul = WHO I am
+// (voice, tone). Role = WHAT I'm doing (developer, designer, pm…).
+// Roles are user-territory like soul files — Persona never auto-writes them.
+
+export interface RoleFile {
+  name: string;
+  content: string;
+}
+
+// Bundled roles ship as on-disk files in persona/presets/roles/<name>/ROLE.md
+// rather than inline strings so the library can be edited and grown without
+// rebuilding the package. role.ts resolves the presets directory relative to
+// the compiled file location at runtime.
+
+// ── Journal ──────────────────────────────────────────────────────────
+// Persona's auto-derived notes. Live in dataDir/journal/, separate from
+// soul/ so user edits to soul are sacred. applyProposal writes here.
+
+export interface JournalFiles {
+  personality: string;
+  style: string;
+  skill: string;
+}
+
 // ── Behavioral Signals ──────────────────────────────────────────────
 
 export type SignalType =
