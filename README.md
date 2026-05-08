@@ -218,7 +218,7 @@ Add to your client's MCP config:
 ### From Source
 
 ```bash
-git clone https://github.com/mattstvartak/persona.git
+git clone https://github.com/OneNomad-LLC/persona.git
 cd persona
 npm install
 npm run build
@@ -437,7 +437,7 @@ Everything sits at `~/.claude/persona/`. Soul files are plain markdown. Signals 
 
 ## Pairs Well With: Engram
 
-If Persona is the personality, [Engram](https://github.com/mattstvartak/engram) is the brain.
+If Persona is the personality, [Engram](https://github.com/OneNomad-LLC/engram) is the brain.
 
 Persona handles *how* the agent talks to you. Engram handles *what* it remembers. They solve different problems and work best together.
 
