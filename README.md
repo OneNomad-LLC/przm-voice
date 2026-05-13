@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./persona-logo.png" alt="Persona" width="120" />
+</p>
+
 # Persona
 
 Every AI you talk to starts with the same personality. Same "I'd be happy to help!" opener. Same trailing summaries. It doesn't learn that you want code before explanation, or that you're a senior dev who already gets the basics. You correct it, it apologizes, and then next conversation it does the same thing all over again.
