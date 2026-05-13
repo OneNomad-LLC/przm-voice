@@ -1,0 +1,58 @@
+{
+  "benchId": "signal-classification-aggregate",
+  "timestamp": "2026-05-13T02:53:41.729Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.5,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "corpusSize": 51,
+    "mode": "regex-auto-detect"
+  },
+  "data": {
+    "personas": [
+      {
+        "persona": "alex",
+        "microF1": 0.9591836734693877,
+        "microPrecision": 0.94,
+        "microRecall": 0.9791666666666666,
+        "macroF1": 0.9729437229437229,
+        "failures": 4
+      },
+      {
+        "persona": "morgan",
+        "microF1": 0.9591836734693877,
+        "microPrecision": 0.94,
+        "microRecall": 0.9791666666666666,
+        "macroF1": 0.9729437229437229,
+        "failures": 4
+      },
+      {
+        "persona": "jordan",
+        "microF1": 0.9591836734693877,
+        "microPrecision": 0.94,
+        "microRecall": 0.9791666666666666,
+        "macroF1": 0.9729437229437229,
+        "failures": 4
+      },
+      {
+        "persona": "sam",
+        "microF1": 0.9591836734693877,
+        "microPrecision": 0.94,
+        "microRecall": 0.9791666666666666,
+        "macroF1": 0.9729437229437229,
+        "failures": 4
+      }
+    ],
+    "meanMicroF1": 0.9591836734693877,
+    "meanMacroF1": 0.9729437229437229
+  }
+}

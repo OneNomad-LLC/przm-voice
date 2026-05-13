@@ -27,7 +27,11 @@
     "dev": "tsc --watch",
     "start": "node dist/server.js",
     "migrate": "node dist/migrations/run.js",
-    "smoke": "node dist/tests/smoke.js"
+    "smoke": "node dist/tests/smoke.js",
+    "bench": "pnpm run bench:signal-classification && pnpm run bench:style-recall && pnpm run bench:context-budget",
+    "bench:signal-classification": "pnpm --filter @onenomad/persona-bench-signal-classification run bench",
+    "bench:style-recall": "pnpm --filter @onenomad/persona-bench-style-recall run bench",
+    "bench:context-budget": "pnpm --filter @onenomad/persona-bench-context-budget run bench"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

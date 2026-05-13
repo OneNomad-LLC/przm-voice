@@ -1,0 +1,87 @@
+{
+  "benchId": "persona-context-budget-sam",
+  "timestamp": "2026-05-13T02:53:43.514Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.7,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "trainingSignals": 60,
+    "budgetsTokens": [
+      256,
+      512,
+      1024,
+      2048,
+      4096
+    ],
+    "tokenizer": "chars-over-3.6 estimate",
+    "backsClaim": "persona_context compresses state without losing preference signal"
+  },
+  "data": {
+    "persona": "sam",
+    "signalsRecorded": 60,
+    "signalTypeCounts": {
+      "style_correction": 13,
+      "elaboration": 28,
+      "praise": 16,
+      "correction": 3
+    },
+    "budgets": [
+      {
+        "budgetTokens": 256,
+        "sizeMode": "minimal",
+        "contextTokensEstimated": 256,
+        "contextChars": 921,
+        "pairsEvaluated": 21,
+        "correct": 0,
+        "accuracy": 0
+      },
+      {
+        "budgetTokens": 512,
+        "sizeMode": "standard",
+        "contextTokensEstimated": 499,
+        "contextChars": 1794,
+        "pairsEvaluated": 21,
+        "correct": 11,
+        "accuracy": 0.5238095238095238
+      },
+      {
+        "budgetTokens": 1024,
+        "sizeMode": "standard",
+        "contextTokensEstimated": 499,
+        "contextChars": 1794,
+        "pairsEvaluated": 21,
+        "correct": 11,
+        "accuracy": 0.5238095238095238
+      },
+      {
+        "budgetTokens": 2048,
+        "sizeMode": "full",
+        "contextTokensEstimated": 499,
+        "contextChars": 1794,
+        "pairsEvaluated": 21,
+        "correct": 11,
+        "accuracy": 0.5238095238095238
+      },
+      {
+        "budgetTokens": 4096,
+        "sizeMode": "full",
+        "contextTokensEstimated": 499,
+        "contextChars": 1794,
+        "pairsEvaluated": 21,
+        "correct": 11,
+        "accuracy": 0.5238095238095238
+      }
+    ],
+    "kneePointTokens": 512,
+    "ceilingAccuracy": 0.5238095238095238
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "benchId": "style-recall-aggregate",
+  "timestamp": "2026-05-13T02:53:42.616Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.5,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "trainingSignals": 60,
+    "useModel": false,
+    "model": null
+  },
+  "data": {
+    "personas": [
+      {
+        "persona": "alex",
+        "pairAccuracy": 0.6666666666666666,
+        "signalsRecorded": 24,
+        "dominantSignal": "approval",
+        "retainedInProfile": true,
+        "retainedInAdaptations": true
+      },
+      {
+        "persona": "morgan",
+        "pairAccuracy": 0.7307692307692307,
+        "signalsRecorded": 60,
+        "dominantSignal": "simplification",
+        "retainedInProfile": true,
+        "retainedInAdaptations": true
+      },
+      {
+        "persona": "jordan",
+        "pairAccuracy": 1,
+        "signalsRecorded": 61,
+        "dominantSignal": "style_correction",
+        "retainedInProfile": false,
+        "retainedInAdaptations": false
+      },
+      {
+        "persona": "sam",
+        "pairAccuracy": 0.5238095238095238,
+        "signalsRecorded": 60,
+        "dominantSignal": "elaboration",
+        "retainedInProfile": true,
+        "retainedInAdaptations": true
+      }
+    ],
+    "meanPairAccuracy": 0.7303113553113553,
+    "retentionRate": 0.75
+  }
+}

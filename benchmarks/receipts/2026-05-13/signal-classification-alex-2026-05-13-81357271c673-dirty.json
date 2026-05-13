@@ -1,0 +1,420 @@
+{
+  "benchId": "signal-classification-alex",
+  "timestamp": "2026-05-13T02:53:41.729Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.5,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "corpusSize": 51,
+    "mode": "regex-auto-detect",
+    "backsClaim": "Auto-detection correctly tags user reactions"
+  },
+  "data": {
+    "persona": "alex",
+    "total": 51,
+    "microPrecision": 0.94,
+    "microRecall": 0.9791666666666666,
+    "microF1": 0.9591836734693877,
+    "macroF1": 0.9729437229437229,
+    "perClass": [
+      {
+        "signal": "correction",
+        "tp": 6,
+        "fp": 2,
+        "fn": 0,
+        "precision": 0.75,
+        "recall": 1,
+        "f1": 0.8571428571428571
+      },
+      {
+        "signal": "approval",
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "frustration",
+        "tp": 5,
+        "fp": 0,
+        "fn": 1,
+        "precision": 1,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091
+      },
+      {
+        "signal": "elaboration",
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "simplification",
+        "tp": 5,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.8333333333333334,
+        "recall": 1,
+        "f1": 0.9090909090909091
+      },
+      {
+        "signal": "code_accepted",
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "code_rejected",
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "regen_request",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "explicit_feedback",
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "style_correction",
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "praise",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "abandonment",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "signal": "re_ask",
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      }
+    ],
+    "confusion": {
+      "correction": {
+        "correction": 6,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 1,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "approval": {
+        "correction": 0,
+        "approval": 5,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "frustration": {
+        "correction": 1,
+        "approval": 0,
+        "frustration": 5,
+        "elaboration": 0,
+        "simplification": 2,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "elaboration": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 4,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "simplification": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 5,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "code_accepted": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 2,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "code_rejected": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 2,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "regen_request": {
+        "correction": 1,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 3,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "explicit_feedback": {
+        "correction": 1,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 5,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "style_correction": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 4,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "praise": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 3,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "abandonment": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 3,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "re_ask": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 0
+      },
+      "_none_": {
+        "correction": 0,
+        "approval": 0,
+        "frustration": 0,
+        "elaboration": 0,
+        "simplification": 0,
+        "code_accepted": 0,
+        "code_rejected": 0,
+        "regen_request": 0,
+        "explicit_feedback": 0,
+        "style_correction": 0,
+        "praise": 0,
+        "abandonment": 0,
+        "re_ask": 0,
+        "_none_": 5
+      }
+    },
+    "failures": [
+      {
+        "id": "f1",
+        "message": "Ugh, why are you ignoring what I said?",
+        "expected": [
+          "frustration"
+        ],
+        "got": [
+          "correction",
+          "frustration"
+        ]
+      },
+      {
+        "id": "f4",
+        "message": "Can you just answer the question?",
+        "expected": [
+          "frustration"
+        ],
+        "got": [
+          "frustration",
+          "simplification"
+        ]
+      },
+      {
+        "id": "s3",
+        "message": "Too much detail. Just the answer.",
+        "expected": [
+          "simplification",
+          "frustration"
+        ],
+        "got": [
+          "simplification"
+        ]
+      },
+      {
+        "id": "r1",
+        "message": "Try again.",
+        "expected": [
+          "regen_request"
+        ],
+        "got": [
+          "correction",
+          "regen_request"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@onenomad/persona-bench-signal-classification",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "tsx src/bench.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@onenomad/persona-bench-shared": "workspace:*",
+    "@onenomad/persona-bench-personas": "workspace:*",
+    "@onenomad/persona-mcp": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

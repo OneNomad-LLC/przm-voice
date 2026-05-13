@@ -1,0 +1,321 @@
+{
+  "benchId": "style-recall-jordan",
+  "timestamp": "2026-05-13T02:53:42.616Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.5,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "trainingSignals": 60,
+    "useModel": false,
+    "model": null,
+    "ollamaUrl": null,
+    "fixturePrompts": 5,
+    "variantsPerPrompt": 4,
+    "backsClaim": "Persona evolves toward the user's preferences"
+  },
+  "data": {
+    "persona": "jordan",
+    "signalsRecorded": 61,
+    "signalTypeCounts": {
+      "code_accepted": 9,
+      "style_correction": 13,
+      "correction": 13,
+      "frustration": 13,
+      "simplification": 13
+    },
+    "synthesisChanges": [
+      "personality updated",
+      "style updated",
+      "skill updated"
+    ],
+    "pairAccuracy": 1,
+    "pairs": [
+      {
+        "promptId": "p1-deploy:terseCode-vs-verbosePreamble",
+        "variantA": "terseCode",
+        "variantB": "verbosePreamble",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.4
+      },
+      {
+        "promptId": "p1-deploy:terseCode-vs-bulletedTldr",
+        "variantA": "terseCode",
+        "variantB": "bulletedTldr",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p1-deploy:terseCode-vs-narrativeBrand",
+        "variantA": "terseCode",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p1-deploy:verbosePreamble-vs-bulletedTldr",
+        "variantA": "verbosePreamble",
+        "variantB": "bulletedTldr",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p1-deploy:verbosePreamble-vs-narrativeBrand",
+        "variantA": "verbosePreamble",
+        "variantB": "narrativeBrand",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p1-deploy:bulletedTldr-vs-narrativeBrand",
+        "variantA": "bulletedTldr",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.6,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p2-state-mgmt:terseCode-vs-verbosePreamble",
+        "variantA": "terseCode",
+        "variantB": "verbosePreamble",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.4
+      },
+      {
+        "promptId": "p2-state-mgmt:terseCode-vs-bulletedTldr",
+        "variantA": "terseCode",
+        "variantB": "bulletedTldr",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p2-state-mgmt:terseCode-vs-narrativeBrand",
+        "variantA": "terseCode",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p2-state-mgmt:verbosePreamble-vs-bulletedTldr",
+        "variantA": "verbosePreamble",
+        "variantB": "bulletedTldr",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p2-state-mgmt:verbosePreamble-vs-narrativeBrand",
+        "variantA": "verbosePreamble",
+        "variantB": "narrativeBrand",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p2-state-mgmt:bulletedTldr-vs-narrativeBrand",
+        "variantA": "bulletedTldr",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.6,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p3-async:terseCode-vs-verbosePreamble",
+        "variantA": "terseCode",
+        "variantB": "verbosePreamble",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.4
+      },
+      {
+        "promptId": "p3-async:terseCode-vs-bulletedTldr",
+        "variantA": "terseCode",
+        "variantB": "bulletedTldr",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p3-async:terseCode-vs-narrativeBrand",
+        "variantA": "terseCode",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p3-async:verbosePreamble-vs-bulletedTldr",
+        "variantA": "verbosePreamble",
+        "variantB": "bulletedTldr",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p3-async:verbosePreamble-vs-narrativeBrand",
+        "variantA": "verbosePreamble",
+        "variantB": "narrativeBrand",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p4-pricing:terseCode-vs-verbosePreamble",
+        "variantA": "terseCode",
+        "variantB": "verbosePreamble",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.4
+      },
+      {
+        "promptId": "p4-pricing:terseCode-vs-narrativeBrand",
+        "variantA": "terseCode",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p4-pricing:verbosePreamble-vs-bulletedTldr",
+        "variantA": "verbosePreamble",
+        "variantB": "bulletedTldr",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p4-pricing:verbosePreamble-vs-narrativeBrand",
+        "variantA": "verbosePreamble",
+        "variantB": "narrativeBrand",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p4-pricing:bulletedTldr-vs-narrativeBrand",
+        "variantA": "bulletedTldr",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.6,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p5-launch:terseCode-vs-verbosePreamble",
+        "variantA": "terseCode",
+        "variantB": "verbosePreamble",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.4
+      },
+      {
+        "promptId": "p5-launch:terseCode-vs-narrativeBrand",
+        "variantA": "terseCode",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.65,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p5-launch:verbosePreamble-vs-bulletedTldr",
+        "variantA": "verbosePreamble",
+        "variantB": "bulletedTldr",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.6
+      },
+      {
+        "promptId": "p5-launch:verbosePreamble-vs-narrativeBrand",
+        "variantA": "verbosePreamble",
+        "variantB": "narrativeBrand",
+        "truthWinner": "B",
+        "predictedWinner": "B",
+        "correct": true,
+        "scoreA": 0.4,
+        "scoreB": 0.5
+      },
+      {
+        "promptId": "p5-launch:bulletedTldr-vs-narrativeBrand",
+        "variantA": "bulletedTldr",
+        "variantB": "narrativeBrand",
+        "truthWinner": "A",
+        "predictedWinner": "A",
+        "correct": true,
+        "scoreA": 0.6,
+        "scoreB": 0.5
+      }
+    ],
+    "signalRecall": {
+      "dominantSignalType": "style_correction",
+      "dominantCount": 13,
+      "retainedInProfile": false,
+      "retainedInAdaptations": false
+    },
+    "adaptationsExcerpt": "--- LEARNED ADAPTATIONS ---\nUser prefers terse, minimal responses. Lead with the answer, skip preamble.\nUser values direct answers. Get to the point immediately.\nIMPORTANT: User frustration rate is elevated. Be extra careful with tone and accuracy.\nUser frequently corrects responses. Double-check accuracy before responding."
+  }
+}

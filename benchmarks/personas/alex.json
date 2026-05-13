@@ -1,0 +1,43 @@
+{
+  "name": "alex",
+  "displayName": "Alex",
+  "tagline": "Curious generalist — the marketable default user",
+  "styleVector": {
+    "formality": 0.45,
+    "energy": 0.55,
+    "verbosity": 0.55,
+    "humor": 0.30,
+    "specificity": 0.55
+  },
+  "bigFive": {
+    "openness": 0.70,
+    "conscientiousness": 0.55,
+    "extraversion": 0.60,
+    "agreeableness": 0.65,
+    "neuroticism": 0.35
+  },
+  "stylePreferences": {
+    "verbosity": 0.1,
+    "opinionStrength": 0.2,
+    "prefersBulletPoints": false,
+    "prefersCodeFirst": false,
+    "prefersDirectAnswers": true,
+    "codeToExplanation": 0.4
+  },
+  "positiveTriggers": [
+    "here'?s why",
+    "for example",
+    "a couple of options",
+    "in plain terms",
+    "let me walk through",
+    "tradeoffs?"
+  ],
+  "negativeTriggers": [
+    "\\btrivial\\b",
+    "\\bobviously\\b",
+    "as I said before",
+    "as previously mentioned"
+  ],
+  "shortResponseThreshold": 30,
+  "longResponseThreshold": 1200
+}

@@ -1,0 +1,84 @@
+{
+  "benchId": "persona-context-budget-alex",
+  "timestamp": "2026-05-13T02:53:43.514Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.7,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "trainingSignals": 60,
+    "budgetsTokens": [
+      256,
+      512,
+      1024,
+      2048,
+      4096
+    ],
+    "tokenizer": "chars-over-3.6 estimate",
+    "backsClaim": "persona_context compresses state without losing preference signal"
+  },
+  "data": {
+    "persona": "alex",
+    "signalsRecorded": 24,
+    "signalTypeCounts": {
+      "approval": 24
+    },
+    "budgets": [
+      {
+        "budgetTokens": 256,
+        "sizeMode": "minimal",
+        "contextTokensEstimated": 256,
+        "contextChars": 921,
+        "pairsEvaluated": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      },
+      {
+        "budgetTokens": 512,
+        "sizeMode": "standard",
+        "contextTokensEstimated": 349,
+        "contextChars": 1256,
+        "pairsEvaluated": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      },
+      {
+        "budgetTokens": 1024,
+        "sizeMode": "standard",
+        "contextTokensEstimated": 349,
+        "contextChars": 1256,
+        "pairsEvaluated": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      },
+      {
+        "budgetTokens": 2048,
+        "sizeMode": "full",
+        "contextTokensEstimated": 349,
+        "contextChars": 1256,
+        "pairsEvaluated": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      },
+      {
+        "budgetTokens": 4096,
+        "sizeMode": "full",
+        "contextTokensEstimated": 349,
+        "contextChars": 1256,
+        "pairsEvaluated": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      }
+    ],
+    "kneePointTokens": 256,
+    "ceilingAccuracy": 0.6666666666666666
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "jordan",
+  "displayName": "Jordan",
+  "tagline": "Senior engineering IC — terse, code-first, zero patience for preamble",
+  "styleVector": {
+    "formality": 0.35,
+    "energy": 0.45,
+    "verbosity": 0.15,
+    "humor": 0.10,
+    "specificity": 0.85
+  },
+  "bigFive": {
+    "openness": 0.65,
+    "conscientiousness": 0.80,
+    "extraversion": 0.30,
+    "agreeableness": 0.25,
+    "neuroticism": 0.30
+  },
+  "stylePreferences": {
+    "verbosity": -0.7,
+    "opinionStrength": 0.3,
+    "prefersBulletPoints": false,
+    "prefersCodeFirst": true,
+    "prefersDirectAnswers": true,
+    "codeToExplanation": 0.8,
+    "avoidPatterns": ["preamble", "trailing summary", "emojis", "great question"]
+  },
+  "positiveTriggers": [
+    "```",
+    "diff:",
+    "src/[A-Za-z0-9_/.-]+:\\d+",
+    "^(do|run|use|add|remove|fix|set|return|write|read)\\b"
+  ],
+  "negativeTriggers": [
+    "great question",
+    "I'?d be happy to",
+    "certainly[,!]",
+    "let me know if",
+    "in conclusion",
+    "to summarize",
+    "as an AI",
+    "I hope this helps",
+    "[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}]"
+  ],
+  "shortResponseThreshold": 0,
+  "longResponseThreshold": 400,
+  "preambleRegex": "^(sure|certainly|of course|absolutely|great|alright|okay|ok)[\\s,!.]",
+  "trailingSummaryRegex": "(in conclusion|to summarize|hope this helps|let me know if)[^.]*\\.?\\s*$"
+}

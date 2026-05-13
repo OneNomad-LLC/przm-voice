@@ -1,0 +1,56 @@
+{
+  "name": "morgan",
+  "displayName": "Morgan",
+  "tagline": "Non-technical business exec — ROI-framed, low jargon tolerance",
+  "styleVector": {
+    "formality": 0.75,
+    "energy": 0.40,
+    "verbosity": 0.30,
+    "humor": 0.10,
+    "specificity": 0.45
+  },
+  "bigFive": {
+    "openness": 0.55,
+    "conscientiousness": 0.80,
+    "extraversion": 0.60,
+    "agreeableness": 0.55,
+    "neuroticism": 0.45
+  },
+  "stylePreferences": {
+    "verbosity": -0.4,
+    "opinionStrength": 0.0,
+    "prefersBulletPoints": true,
+    "prefersCodeFirst": false,
+    "prefersDirectAnswers": true,
+    "codeToExplanation": 0.1,
+    "avoidPatterns": ["jargon", "deep technical detail"]
+  },
+  "positiveTriggers": [
+    "\\btldr\\b",
+    "\\btl;dr\\b",
+    "bottom line",
+    "\\bROI\\b",
+    "\\brevenue\\b",
+    "\\busers\\b",
+    "\\brisk\\b",
+    "\\btimeline\\b",
+    "in plain terms",
+    "\\$[0-9]"
+  ],
+  "negativeTriggers": [
+    "\\basync\\b",
+    "\\bmiddleware\\b",
+    "\\bkernel\\b",
+    "\\bregex\\b",
+    "\\bpointer\\b",
+    "\\bpolymorphism\\b",
+    "\\bmutex\\b",
+    "\\bcallback\\b",
+    "\\bhydration\\b",
+    "\\bwebpack\\b",
+    "\\bturbopack\\b"
+  ],
+  "shortResponseThreshold": 0,
+  "longResponseThreshold": 600,
+  "tldrRequiredAboveChars": 400
+}

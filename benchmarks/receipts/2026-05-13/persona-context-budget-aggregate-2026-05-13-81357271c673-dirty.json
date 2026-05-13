@@ -1,0 +1,140 @@
+{
+  "benchId": "persona-context-budget-aggregate",
+  "timestamp": "2026-05-13T02:53:43.514Z",
+  "gitSha": "81357271c673",
+  "gitDirty": true,
+  "hardware": {
+    "os": "darwin 25.4.0",
+    "cpu": "Apple M5 Pro",
+    "cpuCores": 18,
+    "systemRamGb": 48,
+    "systemRamFreeGb": 2.7,
+    "gpu": "Apple M5 Pro",
+    "vramGb": null,
+    "source": "system_profiler"
+  },
+  "config": {
+    "trainingSignals": 60,
+    "budgetsTokens": [
+      256,
+      512,
+      1024,
+      2048,
+      4096
+    ]
+  },
+  "data": {
+    "personas": [
+      {
+        "persona": "alex",
+        "kneePointTokens": 256,
+        "ceilingAccuracy": 0.6666666666666666,
+        "accuracies": [
+          {
+            "K": 256,
+            "acc": 0.6666666666666666
+          },
+          {
+            "K": 512,
+            "acc": 0.6666666666666666
+          },
+          {
+            "K": 1024,
+            "acc": 0.6666666666666666
+          },
+          {
+            "K": 2048,
+            "acc": 0.6666666666666666
+          },
+          {
+            "K": 4096,
+            "acc": 0.6666666666666666
+          }
+        ]
+      },
+      {
+        "persona": "morgan",
+        "kneePointTokens": 512,
+        "ceilingAccuracy": 0.7307692307692307,
+        "accuracies": [
+          {
+            "K": 256,
+            "acc": 0.5384615384615384
+          },
+          {
+            "K": 512,
+            "acc": 0.7307692307692307
+          },
+          {
+            "K": 1024,
+            "acc": 0.7307692307692307
+          },
+          {
+            "K": 2048,
+            "acc": 0.7307692307692307
+          },
+          {
+            "K": 4096,
+            "acc": 0.7307692307692307
+          }
+        ]
+      },
+      {
+        "persona": "jordan",
+        "kneePointTokens": 512,
+        "ceilingAccuracy": 1,
+        "accuracies": [
+          {
+            "K": 256,
+            "acc": 0.6296296296296297
+          },
+          {
+            "K": 512,
+            "acc": 1
+          },
+          {
+            "K": 1024,
+            "acc": 1
+          },
+          {
+            "K": 2048,
+            "acc": 1
+          },
+          {
+            "K": 4096,
+            "acc": 1
+          }
+        ]
+      },
+      {
+        "persona": "sam",
+        "kneePointTokens": 512,
+        "ceilingAccuracy": 0.5238095238095238,
+        "accuracies": [
+          {
+            "K": 256,
+            "acc": 0
+          },
+          {
+            "K": 512,
+            "acc": 0.5238095238095238
+          },
+          {
+            "K": 1024,
+            "acc": 0.5238095238095238
+          },
+          {
+            "K": 2048,
+            "acc": 0.5238095238095238
+          },
+          {
+            "K": 4096,
+            "acc": 0.5238095238095238
+          }
+        ]
+      }
+    ],
+    "meanCeilingAccuracy": 0.7303113553113553,
+    "worstKneeTokens": 512
+  }
+}

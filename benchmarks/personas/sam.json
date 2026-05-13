@@ -1,0 +1,50 @@
+{
+  "name": "sam",
+  "displayName": "Sam",
+  "tagline": "Marketing / brand professional — audience-aware, storytelling, on-brand",
+  "styleVector": {
+    "formality": 0.45,
+    "energy": 0.70,
+    "verbosity": 0.65,
+    "humor": 0.55,
+    "specificity": 0.50
+  },
+  "bigFive": {
+    "openness": 0.85,
+    "conscientiousness": 0.55,
+    "extraversion": 0.75,
+    "agreeableness": 0.70,
+    "neuroticism": 0.40
+  },
+  "stylePreferences": {
+    "verbosity": 0.3,
+    "opinionStrength": 0.4,
+    "prefersBulletPoints": false,
+    "prefersCodeFirst": false,
+    "prefersDirectAnswers": false,
+    "codeToExplanation": 0.1,
+    "preferredPatterns": ["voice", "narrative", "audience framing"]
+  },
+  "positiveTriggers": [
+    "your audience",
+    "the story is",
+    "\\bvoice\\b",
+    "\\btone\\b",
+    "\\bbrand\\b",
+    "\\bnarrative\\b",
+    "\\bhook\\b",
+    "\\bemotion(al)?\\b",
+    "—"
+  ],
+  "negativeTriggers": [
+    "^```",
+    "technical spec:",
+    "implementation detail",
+    "\\bnull pointer\\b",
+    "\\basync\\b",
+    "\\bcompiler\\b"
+  ],
+  "shortResponseThreshold": 50,
+  "longResponseThreshold": 1500,
+  "requiresAudienceFramingAboveChars": 200
+}
