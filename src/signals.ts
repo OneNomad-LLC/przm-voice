@@ -1,7 +1,6 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { BehavioralSignal, SignalType, PersonaConfig } from './types.js';
+import { getStorage } from './storage/index.js';
 
 /**
  * Behavioral signal recording and storage.
@@ -10,30 +9,12 @@ import type { BehavioralSignal, SignalType, PersonaConfig } from './types.js';
  * frustration, style preferences, etc. They're the raw input that drives
  * profile building and evolution proposals.
  *
- * Storage: dataDir/signals.json (bounded to maxSignals, FIFO)
+ * Storage: routed through the StorageAdapter — file mode preserves the
+ * historical dataDir/signals.json layout exactly.
  */
 
-function signalsPath(config: PersonaConfig): string {
-  return join(config.dataDir, 'signals.json');
-}
-
-export function loadSignals(config: PersonaConfig): BehavioralSignal[] {
-  const path = signalsPath(config);
-  if (!existsSync(path)) return [];
-  try {
-    return JSON.parse(readFileSync(path, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function saveSignals(config: PersonaConfig, signals: BehavioralSignal[]): void {
-  const dir = dirname(signalsPath(config));
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  // Bound to maxSignals
-  const bounded = signals.slice(-config.maxSignals);
-  writeFileSync(signalsPath(config), JSON.stringify(bounded, null, 2), 'utf-8');
+export function loadSignals(_config: PersonaConfig): BehavioralSignal[] {
+  return getStorage().listSignals();
 }
 
 /**
@@ -55,9 +36,7 @@ export function recordSignal(
     timestamp: new Date().toISOString(),
   };
 
-  const signals = loadSignals(config);
-  signals.push(signal);
-  saveSignals(config, signals);
+  getStorage().appendSignal(signal, config.maxSignals);
 
   return signal;
 }

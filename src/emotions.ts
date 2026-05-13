@@ -1,5 +1,3 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import type {
   EmotionalTone,
   EmotionalAssociation,
@@ -7,6 +5,7 @@ import type {
   TraitState,
 } from './types.js';
 import { NEUTRAL_TONE, DEFAULT_TRAIT_STATE } from './types.js';
+import { getStorage } from './storage/index.js';
 
 /**
  * Emotional tone detection based on Plutchik's wheel of emotions.
@@ -274,26 +273,12 @@ export function emotionalArousal(tone: EmotionalTone): number {
 
 // ── Emotional Associations (amygdala-inspired) ─────────────────────
 
-function traitStatePath(config: PersonaConfig): string {
-  return join(config.dataDir, 'trait-state.json');
+export function loadTraitState(_config: PersonaConfig): TraitState {
+  return getStorage().getTraitState() ?? { ...DEFAULT_TRAIT_STATE };
 }
 
-export function loadTraitState(config: PersonaConfig): TraitState {
-  const path = traitStatePath(config);
-  if (!existsSync(path)) return { ...DEFAULT_TRAIT_STATE };
-  try {
-    const raw = JSON.parse(readFileSync(path, 'utf-8'));
-    return { ...DEFAULT_TRAIT_STATE, ...raw };
-  } catch {
-    return { ...DEFAULT_TRAIT_STATE };
-  }
-}
-
-export function saveTraitState(config: PersonaConfig, state: TraitState): void {
-  const path = traitStatePath(config);
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(path, JSON.stringify(state, null, 2), 'utf-8');
+export function saveTraitState(_config: PersonaConfig, state: TraitState): void {
+  getStorage().putTraitState(state);
 }
 
 /**

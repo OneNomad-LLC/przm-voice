@@ -184,6 +184,21 @@ export function computeTargetStyle(userStyle, baseline) {
     };
 }
 /**
+ * EMA blend of two style vectors. `alpha` controls how much weight the
+ * observation gets. For the fast-decay session-style mirror, callers
+ * pass alpha=0.3 — three turns to converge on a tone shift. Used
+ * alongside (not instead of) the slow updateBaselineStyle EMA.
+ */
+export function blendStyleVectors(prev, observation, alpha) {
+    return {
+        formality: prev.formality * (1 - alpha) + observation.formality * alpha,
+        energy: prev.energy * (1 - alpha) + observation.energy * alpha,
+        verbosity: prev.verbosity * (1 - alpha) + observation.verbosity * alpha,
+        humor: prev.humor * (1 - alpha) + observation.humor * alpha,
+        specificity: prev.specificity * (1 - alpha) + observation.specificity * alpha,
+    };
+}
+/**
  * Update a baseline style vector with EMA.
  * This is the slow-moving "who this user is" style, not the per-message read.
  */

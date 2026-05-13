@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getStorage } from './storage/index.js';
 /**
  * Role layer — domain overlays applied on top of the soul.
  *
@@ -8,11 +9,12 @@ import { fileURLToPath } from 'node:url';
  * Role defines WHAT Claude is doing right now (developer, designer, pm, …).
  *
  * Roles are user-territory: Persona never auto-writes them. Bundled defaults
- * ship as on-disk files in persona/presets/roles/<name>/ROLE.md; user
- * overrides or new roles live at dataDir/roles/<name>/ROLE.md and shadow
- * the bundled set.
+ * ship as on-disk files in persona/presets/roles/<name>/ROLE.md (read
+ * directly off the package directory in any backend). User overrides
+ * or new roles flow through the StorageAdapter — file mode keeps them
+ * at dataDir/roles/<name>/ROLE.md, postgres mode keeps them per-tenant.
  *
- * Active role state lives in dataDir/active-role.json. Per-conversation
+ * Active role state lives in adapter.getActiveRole(); per-conversation
  * override is the caller's responsibility (pass roleName into persona_context).
  */
 // Resolve the bundled presets dir relative to the compiled module. Walks up
@@ -40,27 +42,18 @@ function presetsDir() {
 function bundledRolePath(name) {
     return join(presetsDir(), 'roles', name, 'ROLE.md');
 }
-function userRolesDir(config) {
-    return join(config.dataDir, 'roles');
-}
-function userRolePath(config, name) {
-    return join(userRolesDir(config), name, 'ROLE.md');
-}
-function activeRolePath(config) {
-    return join(config.dataDir, 'active-role.json');
-}
 // ── Read ────────────────────────────────────────────────────────────
-export function readRole(config, name) {
+export function readRole(_config, name) {
     // User override takes precedence over bundled default
-    const userPath = userRolePath(config, name);
-    if (existsSync(userPath))
-        return readFileSync(userPath, 'utf-8');
+    const override = getStorage().readRole(name);
+    if (override)
+        return override;
     const bundledPath = bundledRolePath(name);
     if (existsSync(bundledPath))
         return readFileSync(bundledPath, 'utf-8');
     return '';
 }
-export function listRoles(config) {
+export function listRoles(_config) {
     const seen = new Map();
     // Bundled presets first
     const presetsRoles = join(presetsDir(), 'roles');
@@ -81,56 +74,22 @@ export function listRoles(config) {
         }
     }
     // User overrides + custom roles (last write wins)
-    const dir = userRolesDir(config);
-    if (existsSync(dir)) {
-        for (const entry of readdirSync(dir)) {
-            const subPath = join(dir, entry);
-            try {
-                if (!statSync(subPath).isDirectory())
-                    continue;
-            }
-            catch {
-                continue;
-            }
-            const file = join(subPath, 'ROLE.md');
-            if (existsSync(file)) {
-                seen.set(entry, readFileSync(file, 'utf-8'));
-            }
-        }
+    for (const role of getStorage().listRoles()) {
+        if (role.content)
+            seen.set(role.name, role.content);
     }
     return Array.from(seen.entries()).map(([name, content]) => ({ name, content }));
 }
 // ── Write (user-edited custom roles) ────────────────────────────────
-export function writeRole(config, name, content) {
-    const dir = join(userRolesDir(config), name);
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, 'ROLE.md'), content, 'utf-8');
+export function writeRole(_config, name, content) {
+    getStorage().writeRole(name, content);
 }
 // ── Active role ─────────────────────────────────────────────────────
-export function getActiveRole(config) {
-    const path = activeRolePath(config);
-    if (!existsSync(path))
-        return null;
-    try {
-        const data = JSON.parse(readFileSync(path, 'utf-8'));
-        return typeof data.name === 'string' && data.name.length > 0 ? data.name : null;
-    }
-    catch {
-        return null;
-    }
+export function getActiveRole(_config) {
+    return getStorage().getActiveRole();
 }
-export function setActiveRole(config, name) {
-    const path = activeRolePath(config);
-    if (name === null) {
-        if (existsSync(path))
-            writeFileSync(path, JSON.stringify({ name: null }), 'utf-8');
-        return;
-    }
-    const dir = config.dataDir;
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    writeFileSync(path, JSON.stringify({ name }), 'utf-8');
+export function setActiveRole(_config, name) {
+    getStorage().putActiveRole(name);
 }
 // ── Build prompt context for a role ─────────────────────────────────
 export function buildRoleContext(content) {

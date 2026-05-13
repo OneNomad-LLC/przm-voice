@@ -20,6 +20,13 @@ export declare function computeStyleVector(message: string): StyleVector;
  */
 export declare function computeTargetStyle(userStyle: StyleVector, baseline: StyleVector): StyleVector;
 /**
+ * EMA blend of two style vectors. `alpha` controls how much weight the
+ * observation gets. For the fast-decay session-style mirror, callers
+ * pass alpha=0.3 — three turns to converge on a tone shift. Used
+ * alongside (not instead of) the slow updateBaselineStyle EMA.
+ */
+export declare function blendStyleVectors(prev: StyleVector, observation: StyleVector, alpha: number): StyleVector;
+/**
  * Update a baseline style vector with EMA.
  * This is the slow-moving "who this user is" style, not the per-message read.
  */

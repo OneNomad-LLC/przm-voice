@@ -172,12 +172,18 @@ function buildPersonality(traits, profile) {
     if (profile && profile.stylePreferences.opinionStrength > 0.3) {
         lines.push('Share opinions and recommendations confidently when relevant.');
     }
-    // Feedback-driven traits
-    if (profile && profile.recentFeedback.length > 0) {
-        lines.push('');
-        lines.push('## Learned from direct feedback');
-        for (const fb of profile.recentFeedback.slice(-5)) {
-            lines.push(`- ${fb}`);
+    // Feedback-driven traits — pinned entries lead (curated), recent
+    // entries trail (rolling FIFO).
+    if (profile) {
+        const pinned = profile.pinnedFeedback ?? [];
+        const recent = (profile.recentFeedback ?? []).slice(-5);
+        if (pinned.length > 0 || recent.length > 0) {
+            lines.push('');
+            lines.push('## Learned from direct feedback');
+            for (const fb of pinned)
+                lines.push(`- ${fb}`);
+            for (const fb of recent)
+                lines.push(`- ${fb}`);
         }
     }
     return lines.join('\n');

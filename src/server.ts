@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { loadConfig } from './config.js';
+import { createStorage, setStorage } from './storage/index.js';
 import { readSoulFile, readAllSoulFiles, writeSoulFile, initSoulFiles, buildSoulContext } from './soul.js';
 import { readAllJournalFiles, clearJournal } from './journal.js';
 import { listRoles, readRole, writeRole, getActiveRole, setActiveRole } from './role.js';
@@ -21,6 +22,13 @@ import type { SignalType, SessionState } from './types.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
 
 const config = loadConfig();
+
+// Storage adapter must be wired before any of the module-level
+// evaluations below touch soul/signals/etc. Top-level await keeps
+// the file-mode default path synchronous (createStorage resolves
+// immediately for file backend) while still allowing postgres mode
+// to perform its initial SELECT before any tool registration runs.
+setStorage(await createStorage());
 
 // Initialize soul files with defaults on first run
 const soulFiles = initSoulFiles(config);

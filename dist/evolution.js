@@ -1,9 +1,8 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { loadProfile } from './profile.js';
 import { getSignalCounts, getRecentSignals } from './signals.js';
 import { appendJournal, replaceJournalFragment, removeJournalFragment } from './journal.js';
+import { getStorage } from './storage/index.js';
 /**
  * Evolution engine -- proposes and applies personality changes
  * based on accumulated behavioral evidence.
@@ -12,27 +11,14 @@ import { appendJournal, replaceJournalFragment, removeJournalFragment } from './
  * Each proposal targets a specific soul file with a concrete edit
  * and a rationale backed by signal evidence.
  *
- * Storage: dataDir/proposals.json
+ * Storage: routed through the StorageAdapter. File mode preserves
+ * dataDir/proposals.json exactly.
  */
-function proposalsPath(config) {
-    return join(config.dataDir, 'proposals.json');
+export function loadProposals(_config) {
+    return getStorage().getProposals();
 }
-export function loadProposals(config) {
-    const path = proposalsPath(config);
-    if (!existsSync(path))
-        return [];
-    try {
-        return JSON.parse(readFileSync(path, 'utf-8'));
-    }
-    catch {
-        return [];
-    }
-}
-function saveProposals(config, proposals) {
-    const dir = dirname(proposalsPath(config));
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    writeFileSync(proposalsPath(config), JSON.stringify(proposals, null, 2), 'utf-8');
+function saveProposals(_config, proposals) {
+    getStorage().putProposals(proposals);
 }
 // ── Proposal Generation ─────────────────────────────────────────────
 /**

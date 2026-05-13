@@ -1,7 +1,18 @@
 import type { SoulFiles, PersonaConfig } from './types.js';
-export declare function readSoulFile(config: PersonaConfig, file: keyof SoulFiles): string;
+/**
+ * Soul file management -- read, write, and initialize personality files.
+ *
+ * Soul files are markdown documents stored in dataDir/soul/:
+ *   PERSONALITY.md -- Who you are (tone, humor, confidence)
+ *   STYLE.md       -- How you communicate (formatting, verbosity, patterns)
+ *   SKILL.md       -- How you work (workflow, decision-making, priorities)
+ *
+ * Storage: routed through the StorageAdapter. File mode preserves the
+ * dataDir/soul/*.md layout exactly.
+ */
+export declare function readSoulFile(_config: PersonaConfig, file: keyof SoulFiles): string;
 export declare function readAllSoulFiles(config: PersonaConfig): SoulFiles;
-export declare function writeSoulFile(config: PersonaConfig, file: keyof SoulFiles, content: string): void;
+export declare function writeSoulFile(_config: PersonaConfig, file: keyof SoulFiles, content: string): void;
 export declare function initSoulFiles(config: PersonaConfig): SoulFiles;
 /**
  * Sizing for the assembled context. Lets callers trade detail for

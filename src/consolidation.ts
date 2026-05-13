@@ -1,11 +1,11 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import type { PersonaConfig, TraitState, SessionState } from './types.js';
 import { DEFAULT_TRAIT_STATE } from './types.js';
 import { loadTraitState, saveTraitState } from './emotions.js';
 import { loadSignals, getRecentSignals, getSignalCounts } from './signals.js';
 import { loadProfile } from './profile.js';
 import { readAllSoulFiles, writeSoulFile } from './soul.js';
+import { getStorage } from './storage/index.js';
+import type { SessionSummary as AdapterSessionSummary } from './storage/index.js';
 
 /**
  * Between-session consolidation, modeled after sleep consolidation
@@ -36,38 +36,15 @@ const EMOTION_DECAY_RATE = 0.95;  // per consolidation cycle
 
 // ── Session History ────────────────────────────────────────────────
 
-interface SessionSummary {
-  id: string;
-  timestamp: string;
-  messageCount: number;
-  avgValence: number;
-  avgArousal: number;
-  dominantEmotion: string;
-  styleSnapshot: { formality: number; energy: number; verbosity: number; humor: number; specificity: number };
-  signalCounts: Record<string, number>;
+type SessionSummary = AdapterSessionSummary;
+
+function loadSessionHistory(_config: PersonaConfig): SessionSummary[] {
+  return getStorage().listSessions();
 }
 
-function sessionHistoryPath(config: PersonaConfig): string {
-  return join(config.dataDir, 'session-history.json');
-}
-
-function loadSessionHistory(config: PersonaConfig): SessionSummary[] {
-  const path = sessionHistoryPath(config);
-  if (!existsSync(path)) return [];
-  try {
-    return JSON.parse(readFileSync(path, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function saveSessionHistory(config: PersonaConfig, history: SessionSummary[]): void {
-  const path = sessionHistoryPath(config);
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  // Keep last 100 sessions
-  const bounded = history.slice(-100);
-  writeFileSync(path, JSON.stringify(bounded, null, 2), 'utf-8');
+function appendSessionHistory(_config: PersonaConfig, summary: SessionSummary): void {
+  // Adapter handles the FIFO trim at 100 internally.
+  getStorage().appendSession(summary);
 }
 
 // ── Main Consolidation ─────────────────────────────────────────────
@@ -180,8 +157,6 @@ export function recordSessionSummary(
   session: SessionState,
   signalCounts: Record<string, number>
 ): void {
-  const history = loadSessionHistory(config);
-
   // Find dominant emotion
   const tone = session.emotionalTone;
   const emotions = Object.entries(tone) as [string, number][];
@@ -193,7 +168,7 @@ export function recordSessionSummary(
   const negative = tone.anger + tone.sadness + tone.disgust + tone.fear;
   const total = positive + negative || 1;
 
-  history.push({
+  appendSessionHistory(config, {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     messageCount: session.messageCount,
@@ -203,8 +178,6 @@ export function recordSessionSummary(
     styleSnapshot: { ...session.styleVector },
     signalCounts,
   });
-
-  saveSessionHistory(config, history);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────

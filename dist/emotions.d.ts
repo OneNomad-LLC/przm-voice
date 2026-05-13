@@ -34,8 +34,8 @@ export declare function emotionalValence(tone: EmotionalTone): number;
  * Collapse to arousal (0 to 1). High-activation emotions push up.
  */
 export declare function emotionalArousal(tone: EmotionalTone): number;
-export declare function loadTraitState(config: PersonaConfig): TraitState;
-export declare function saveTraitState(config: PersonaConfig, state: TraitState): void;
+export declare function loadTraitState(_config: PersonaConfig): TraitState;
+export declare function saveTraitState(_config: PersonaConfig, state: TraitState): void;
 /**
  * Update emotional associations for a topic.
  * Negative associations form fast (amygdala one-shot learning),

@@ -1,7 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import type { SoulFiles, PersonaConfig } from './types.js';
-import { SOUL_FILE_NAMES } from './types.js';
+import { getStorage } from './storage/index.js';
 
 /**
  * Soul file management -- read, write, and initialize personality files.
@@ -10,27 +8,15 @@ import { SOUL_FILE_NAMES } from './types.js';
  *   PERSONALITY.md -- Who you are (tone, humor, confidence)
  *   STYLE.md       -- How you communicate (formatting, verbosity, patterns)
  *   SKILL.md       -- How you work (workflow, decision-making, priorities)
+ *
+ * Storage: routed through the StorageAdapter. File mode preserves the
+ * dataDir/soul/*.md layout exactly.
  */
-
-function soulDir(config: PersonaConfig): string {
-  return join(config.dataDir, 'soul');
-}
-
-function soulPath(config: PersonaConfig, file: keyof SoulFiles): string {
-  const names: Record<keyof SoulFiles, string> = {
-    personality: 'PERSONALITY.md',
-    style: 'STYLE.md',
-    skill: 'SKILL.md',
-  };
-  return join(soulDir(config), names[file]);
-}
 
 // ── Read ────────────────────────────────────────────────────────────
 
-export function readSoulFile(config: PersonaConfig, file: keyof SoulFiles): string {
-  const path = soulPath(config, file);
-  if (!existsSync(path)) return '';
-  return readFileSync(path, 'utf-8');
+export function readSoulFile(_config: PersonaConfig, file: keyof SoulFiles): string {
+  return getStorage().readSoul(file);
 }
 
 export function readAllSoulFiles(config: PersonaConfig): SoulFiles {
@@ -43,19 +29,16 @@ export function readAllSoulFiles(config: PersonaConfig): SoulFiles {
 
 // ── Write ───────────────────────────────────────────────────────────
 
-export function writeSoulFile(config: PersonaConfig, file: keyof SoulFiles, content: string): void {
-  const path = soulPath(config, file);
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(path, content, 'utf-8');
+export function writeSoulFile(_config: PersonaConfig, file: keyof SoulFiles, content: string): void {
+  getStorage().writeSoul(file, content);
 }
 
 // ── Initialize with defaults ────────────────────────────────────────
 
 export function initSoulFiles(config: PersonaConfig): SoulFiles {
-  const dir = soulDir(config);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
+  // Read first — postgres-mode adapters lazy-seed bundled defaults
+  // on first read, and file mode treats absent files as empty
+  // strings. Only the empty cases need an explicit default-write.
   const files = readAllSoulFiles(config);
 
   if (!files.personality) {

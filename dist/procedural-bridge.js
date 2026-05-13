@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { loadProposals } from './evolution.js';
 import { readAllSoulFiles } from './soul.js';
+import { getStorage } from './storage/index.js';
 const BRIDGE_PATH = join(homedir(), '.claude', 'procedural-bridge.json');
 // ── File I/O ───────────────────────────────────────────────────────
 function loadBridgeFile() {
@@ -85,12 +86,11 @@ export function importRulesFromBridge(config) {
         existing.push(proposal);
         imported++;
     }
-    // Save updated proposals
+    // Save updated proposals via the storage adapter so postgres-mode
+    // tenant scoping holds. The bridge JSON itself stays on the host
+    // filesystem because it's a cross-process interop file with Engram.
     if (imported > 0) {
-        const dir = dirname(join(config.dataDir, 'proposals.json'));
-        if (!existsSync(dir))
-            mkdirSync(dir, { recursive: true });
-        writeFileSync(join(config.dataDir, 'proposals.json'), JSON.stringify(existing, null, 2), 'utf-8');
+        getStorage().putProposals(existing);
     }
     return { imported, skipped, conflicts };
 }

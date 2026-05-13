@@ -1,5 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { getStorage } from './storage/index.js';
 /**
  * Soul file management -- read, write, and initialize personality files.
  *
@@ -7,24 +6,13 @@ import { join, dirname } from 'node:path';
  *   PERSONALITY.md -- Who you are (tone, humor, confidence)
  *   STYLE.md       -- How you communicate (formatting, verbosity, patterns)
  *   SKILL.md       -- How you work (workflow, decision-making, priorities)
+ *
+ * Storage: routed through the StorageAdapter. File mode preserves the
+ * dataDir/soul/*.md layout exactly.
  */
-function soulDir(config) {
-    return join(config.dataDir, 'soul');
-}
-function soulPath(config, file) {
-    const names = {
-        personality: 'PERSONALITY.md',
-        style: 'STYLE.md',
-        skill: 'SKILL.md',
-    };
-    return join(soulDir(config), names[file]);
-}
 // ── Read ────────────────────────────────────────────────────────────
-export function readSoulFile(config, file) {
-    const path = soulPath(config, file);
-    if (!existsSync(path))
-        return '';
-    return readFileSync(path, 'utf-8');
+export function readSoulFile(_config, file) {
+    return getStorage().readSoul(file);
 }
 export function readAllSoulFiles(config) {
     return {
@@ -34,18 +22,14 @@ export function readAllSoulFiles(config) {
     };
 }
 // ── Write ───────────────────────────────────────────────────────────
-export function writeSoulFile(config, file, content) {
-    const path = soulPath(config, file);
-    const dir = dirname(path);
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    writeFileSync(path, content, 'utf-8');
+export function writeSoulFile(_config, file, content) {
+    getStorage().writeSoul(file, content);
 }
 // ── Initialize with defaults ────────────────────────────────────────
 export function initSoulFiles(config) {
-    const dir = soulDir(config);
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
+    // Read first — postgres-mode adapters lazy-seed bundled defaults
+    // on first read, and file mode treats absent files as empty
+    // strings. Only the empty cases need an explicit default-write.
     const files = readAllSoulFiles(config);
     if (!files.personality) {
         files.personality = DEFAULT_PERSONALITY;

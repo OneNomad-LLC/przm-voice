@@ -1,6 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import { NEUTRAL_TONE, DEFAULT_TRAIT_STATE } from './types.js';
+import { getStorage } from './storage/index.js';
 /**
  * Emotional tone detection based on Plutchik's wheel of emotions.
  *
@@ -215,27 +214,11 @@ export function emotionalArousal(tone) {
     return highArousal / total;
 }
 // ── Emotional Associations (amygdala-inspired) ─────────────────────
-function traitStatePath(config) {
-    return join(config.dataDir, 'trait-state.json');
+export function loadTraitState(_config) {
+    return getStorage().getTraitState() ?? { ...DEFAULT_TRAIT_STATE };
 }
-export function loadTraitState(config) {
-    const path = traitStatePath(config);
-    if (!existsSync(path))
-        return { ...DEFAULT_TRAIT_STATE };
-    try {
-        const raw = JSON.parse(readFileSync(path, 'utf-8'));
-        return { ...DEFAULT_TRAIT_STATE, ...raw };
-    }
-    catch {
-        return { ...DEFAULT_TRAIT_STATE };
-    }
-}
-export function saveTraitState(config, state) {
-    const path = traitStatePath(config);
-    const dir = dirname(path);
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    writeFileSync(path, JSON.stringify(state, null, 2), 'utf-8');
+export function saveTraitState(_config, state) {
+    getStorage().putTraitState(state);
 }
 /**
  * Update emotional associations for a topic.

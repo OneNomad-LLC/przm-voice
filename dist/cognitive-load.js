@@ -106,6 +106,21 @@ export function updateCognitiveLoad(state, message, previousMessage) {
     return updated;
 }
 /**
+ * Returns a short prompt fragment summarizing the current cognitive state
+ * for injection into the system prompt. Returns '' for the neutral band
+ * so we don't waste tokens. Designed to slot into the soul-assembler
+ * near the voice block.
+ */
+export function describeLoadForPrompt(state) {
+    if (state.overloaded) {
+        return 'User cognitive load: HIGH. Break responses into numbered chunks. Confirm before continuing. Avoid unsolicited teaching.';
+    }
+    if (state.inFlow) {
+        return 'User in flow. Match pace. Keep responses tight. No unsolicited teaching.';
+    }
+    return '';
+}
+/**
  * Get verbosity recommendation based on cognitive load.
  * Returns a multiplier: <1 means be more concise, >1 means can be verbose.
  */

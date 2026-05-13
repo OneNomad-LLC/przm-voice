@@ -1,7 +1,6 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { DEFAULT_PROFILE, DEFAULT_STYLE_PREFERENCES } from './types.js';
+import { DEFAULT_PROFILE } from './types.js';
 import { getSignalCounts, getRecentSignals } from './signals.js';
+import { getStorage } from './storage/index.js';
 /**
  * Behavioral profile -- aggregated view of user preferences built from signals.
  *
@@ -9,34 +8,22 @@ import { getSignalCounts, getRecentSignals } from './signals.js';
  * per-topic adjustments, satisfaction rates, and explicit feedback.
  * It's rebuilt incrementally as new signals arrive.
  *
- * Storage: dataDir/profile.json
+ * Storage: routed through the StorageAdapter. File mode preserves
+ * dataDir/profile.json exactly.
  */
-function profilePath(config) {
-    return join(config.dataDir, 'profile.json');
+export function loadProfile(_config) {
+    return getStorage().getProfile() ?? { ...DEFAULT_PROFILE };
 }
-export function loadProfile(config) {
-    const path = profilePath(config);
-    if (!existsSync(path))
-        return { ...DEFAULT_PROFILE };
-    try {
-        const raw = JSON.parse(readFileSync(path, 'utf-8'));
-        return {
-            ...DEFAULT_PROFILE,
-            ...raw,
-            stylePreferences: { ...DEFAULT_STYLE_PREFERENCES, ...raw.stylePreferences },
-            stats: { ...DEFAULT_PROFILE.stats, ...raw.stats },
-        };
-    }
-    catch {
-        return { ...DEFAULT_PROFILE };
-    }
+/**
+ * Persist a profile directly. Used by feedback pin/unpin which mutates
+ * profile fields outside the signal-rebuild path.
+ */
+export function saveProfileExternal(config, profile) {
+    saveProfile(config, profile);
 }
-function saveProfile(config, profile) {
-    const dir = dirname(profilePath(config));
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
+function saveProfile(_config, profile) {
     profile.lastUpdated = new Date().toISOString();
-    writeFileSync(profilePath(config), JSON.stringify(profile, null, 2), 'utf-8');
+    getStorage().putProfile(profile);
 }
 /**
  * Rebuild profile from current signal history.
@@ -70,7 +57,12 @@ export function rebuildProfile(config, signals) {
             extractStylePatterns(signal, prefs);
         }
         if (signal.type === 'explicit_feedback') {
-            if (!profile.recentFeedback.includes(signal.content)) {
+            // Skip if already captured (either in the rolling recent window
+            // or curated into pinnedFeedback). Pinned is the canonical home;
+            // we don't want recent to shadow it.
+            const inRecent = profile.recentFeedback.includes(signal.content);
+            const inPinned = (profile.pinnedFeedback ?? []).includes(signal.content);
+            if (!inRecent && !inPinned) {
                 profile.recentFeedback.push(signal.content);
                 if (profile.recentFeedback.length > 10) {
                     profile.recentFeedback = profile.recentFeedback.slice(-10);

@@ -23,6 +23,7 @@ export const DEFAULT_PROFILE = {
     stylePreferences: { ...DEFAULT_STYLE_PREFERENCES },
     topicPreferences: {},
     recentFeedback: [],
+    pinnedFeedback: [],
     lastUpdated: new Date().toISOString(),
 };
 export const NEUTRAL_TONE = {
@@ -44,6 +45,7 @@ export const DEFAULT_COGNITIVE_LOAD = {
 export const DEFAULT_SESSION_STATE = {
     emotionalTone: { ...NEUTRAL_TONE },
     styleVector: { ...DEFAULT_STYLE_VECTOR },
+    currentStyleVector: null,
     cognitiveLoad: { ...DEFAULT_COGNITIVE_LOAD },
     messageCount: 0,
     startedAt: new Date().toISOString(),

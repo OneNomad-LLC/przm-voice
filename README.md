@@ -453,6 +453,49 @@ When both MCP servers are running, they coordinate through three mechanisms:
 
 Persona works fine solo. But if you want an agent that feels like it genuinely knows you, not just how to talk to you but what you've told it, run both.
 
+## Cloud / multi-tenant mode
+
+Persona ships with a pluggable storage layer. The default backend is local files under `PERSONA_DATA_DIR` — that path is documented throughout this README and is unchanged. The Postgres backend exists for hosted multi-tenant deployments and is gated entirely behind environment variables.
+
+| `STORAGE_BACKEND` | Required env | Where state lives |
+| --- | --- | --- |
+| `file` (default) | `PERSONA_DATA_DIR` (optional, defaults to `~/.claude/persona`) | On-disk JSON + markdown under the data directory, exactly as documented above. |
+| `postgres` | `DATABASE_URL`, `TENANT_ID` | Single Postgres database; every row scoped by `tenant_id`. |
+
+Soul presets seed lazily in Postgres mode. The first `readSoul('personality')` for a fresh tenant copies `presets/souls/default/SOUL.md` into the tenant's `persona_soul` row, then returns it. Style and skill files seed from the same blank-slate defaults the file backend uses. Bundled role presets are read directly from `presets/roles/` in both backends — they ship with the package, not the database.
+
+The procedural bridge file at `~/.claude/procedural-bridge.json` remains on the host filesystem in both modes. It is a cross-process interop contract with Engram, not tenant state.
+
+### Schema and migrations
+
+Schema lives in `migrations/postgres/001_init.sql`. Six tables, all keyed by `tenant_id`:
+
+- `persona_state` — one row per tenant, jsonb columns for profile, trait state, proposals; text for active role.
+- `persona_signals` / `persona_sessions` — bigserial primary keys, FIFO-trimmed to 500 / 100 entries per tenant on insert.
+- `persona_soul`, `persona_journal`, `persona_roles` — composite primary key `(tenant_id, name)`, content as text.
+
+Run migrations with:
+
+```sh
+DATABASE_URL=postgres://user:pass@host/db npm run migrate
+```
+
+The runner tracks applied versions in a `persona_migrations` table and is safe to re-run.
+
+### Smoke test
+
+`npm run smoke` exercises the active backend end-to-end (append signal, read profile on empty tenant, write and round-trip a soul file).
+
+```sh
+# File mode — uses a fresh tmpdir, does not touch real data
+npm run smoke
+
+# Postgres mode — runs migrations first, uses TENANT_ID="smoke-<uuid>"
+STORAGE_BACKEND=postgres DATABASE_URL=postgres://... npm run smoke
+```
+
+Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres backend is for hosted environments where many users share infrastructure but each must see only their own personality data.
+
 ## License
 
 Licensed under the [Business Source License 1.1](LICENSE).

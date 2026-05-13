@@ -1,13 +1,12 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import type {
   BehavioralProfile,
   BehavioralSignal,
   PersonaConfig,
   StylePreferences,
 } from './types.js';
-import { DEFAULT_PROFILE, DEFAULT_STYLE_PREFERENCES } from './types.js';
+import { DEFAULT_PROFILE } from './types.js';
 import { getSignalCounts, getRecentSignals } from './signals.js';
+import { getStorage } from './storage/index.js';
 
 /**
  * Behavioral profile -- aggregated view of user preferences built from signals.
@@ -16,30 +15,12 @@ import { getSignalCounts, getRecentSignals } from './signals.js';
  * per-topic adjustments, satisfaction rates, and explicit feedback.
  * It's rebuilt incrementally as new signals arrive.
  *
- * Storage: dataDir/profile.json
+ * Storage: routed through the StorageAdapter. File mode preserves
+ * dataDir/profile.json exactly.
  */
 
-function profilePath(config: PersonaConfig): string {
-  return join(config.dataDir, 'profile.json');
-}
-
-export function loadProfile(config: PersonaConfig): BehavioralProfile {
-  const path = profilePath(config);
-  if (!existsSync(path)) return { ...DEFAULT_PROFILE };
-  try {
-    const raw = JSON.parse(readFileSync(path, 'utf-8'));
-    return {
-      ...DEFAULT_PROFILE,
-      ...raw,
-      stylePreferences: { ...DEFAULT_STYLE_PREFERENCES, ...raw.stylePreferences },
-      stats: { ...DEFAULT_PROFILE.stats, ...raw.stats },
-      // Backfill pinnedFeedback for profiles persisted under v2.4 schema.
-      recentFeedback: Array.isArray(raw.recentFeedback) ? raw.recentFeedback : [],
-      pinnedFeedback: Array.isArray(raw.pinnedFeedback) ? raw.pinnedFeedback : [],
-    };
-  } catch {
-    return { ...DEFAULT_PROFILE };
-  }
+export function loadProfile(_config: PersonaConfig): BehavioralProfile {
+  return getStorage().getProfile() ?? { ...DEFAULT_PROFILE };
 }
 
 /**
@@ -50,11 +31,9 @@ export function saveProfileExternal(config: PersonaConfig, profile: BehavioralPr
   saveProfile(config, profile);
 }
 
-function saveProfile(config: PersonaConfig, profile: BehavioralProfile): void {
-  const dir = dirname(profilePath(config));
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+function saveProfile(_config: PersonaConfig, profile: BehavioralProfile): void {
   profile.lastUpdated = new Date().toISOString();
-  writeFileSync(profilePath(config), JSON.stringify(profile, null, 2), 'utf-8');
+  getStorage().putProfile(profile);
 }
 
 /**

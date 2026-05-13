@@ -13,7 +13,7 @@ export interface JournalFiles {
     style: string;
     skill: string;
 }
-export type SignalType = 'correction' | 'approval' | 'frustration' | 'elaboration' | 'simplification' | 'code_accepted' | 'code_rejected' | 'regen_request' | 'explicit_feedback' | 'style_correction' | 'praise' | 'abandonment';
+export type SignalType = 'correction' | 'approval' | 'frustration' | 'elaboration' | 'simplification' | 'code_accepted' | 'code_rejected' | 'regen_request' | 'explicit_feedback' | 'style_correction' | 'praise' | 'abandonment' | 're_ask';
 export interface BehavioralSignal {
     id: string;
     type: SignalType;
@@ -49,6 +49,7 @@ export interface BehavioralProfile {
         signalCount: number;
     }>;
     recentFeedback: string[];
+    pinnedFeedback: string[];
     lastUpdated: string;
 }
 export declare const DEFAULT_STYLE_PREFERENCES: StylePreferences;
@@ -110,6 +111,7 @@ export declare const DEFAULT_COGNITIVE_LOAD: CognitiveLoadState;
 export interface SessionState {
     emotionalTone: EmotionalTone;
     styleVector: StyleVector;
+    currentStyleVector: StyleVector | null;
     cognitiveLoad: CognitiveLoadState;
     messageCount: number;
     startedAt: string;

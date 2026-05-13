@@ -25,14 +25,18 @@
     "clean": "rm -rf dist",
     "build": "rm -rf dist && tsc",
     "dev": "tsc --watch",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate": "node dist/migrations/run.js",
+    "smoke": "node dist/tests/smoke.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "pg": "^8.20.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
     "typescript": "^5.7.0"
   }
 }

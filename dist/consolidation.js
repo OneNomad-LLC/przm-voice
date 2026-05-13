@@ -1,8 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
 import { loadTraitState, saveTraitState } from './emotions.js';
 import { loadSignals, getRecentSignals, getSignalCounts } from './signals.js';
 import { loadProfile } from './profile.js';
+import { getStorage } from './storage/index.js';
 /**
  * Between-session consolidation, modeled after sleep consolidation
  * and the Default Mode Network.
@@ -28,28 +27,12 @@ import { loadProfile } from './profile.js';
 const TRAIT_LEARNING_RATE = 0.01;
 const TRANSITION_LEARNING_RATE = 0.05; // used when high variance detected
 const EMOTION_DECAY_RATE = 0.95; // per consolidation cycle
-function sessionHistoryPath(config) {
-    return join(config.dataDir, 'session-history.json');
+function loadSessionHistory(_config) {
+    return getStorage().listSessions();
 }
-function loadSessionHistory(config) {
-    const path = sessionHistoryPath(config);
-    if (!existsSync(path))
-        return [];
-    try {
-        return JSON.parse(readFileSync(path, 'utf-8'));
-    }
-    catch {
-        return [];
-    }
-}
-function saveSessionHistory(config, history) {
-    const path = sessionHistoryPath(config);
-    const dir = dirname(path);
-    if (!existsSync(dir))
-        mkdirSync(dir, { recursive: true });
-    // Keep last 100 sessions
-    const bounded = history.slice(-100);
-    writeFileSync(path, JSON.stringify(bounded, null, 2), 'utf-8');
+function appendSessionHistory(_config, summary) {
+    // Adapter handles the FIFO trim at 100 internally.
+    getStorage().appendSession(summary);
 }
 /**
  * Run the full consolidation pass.
@@ -130,7 +113,6 @@ export function runConsolidation(config) {
  * Record a session summary for future consolidation.
  */
 export function recordSessionSummary(config, session, signalCounts) {
-    const history = loadSessionHistory(config);
     // Find dominant emotion
     const tone = session.emotionalTone;
     const emotions = Object.entries(tone);
@@ -140,7 +122,7 @@ export function recordSessionSummary(config, session, signalCounts) {
     const positive = tone.joy + tone.trust + tone.anticipation;
     const negative = tone.anger + tone.sadness + tone.disgust + tone.fear;
     const total = positive + negative || 1;
-    history.push({
+    appendSessionHistory(config, {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         messageCount: session.messageCount,
@@ -150,7 +132,6 @@ export function recordSessionSummary(config, session, signalCounts) {
         styleSnapshot: { ...session.styleVector },
         signalCounts,
     });
-    saveSessionHistory(config, history);
 }
 // ── Helpers ────────────────────────────────────────────────────────
 function averageStyle(snapshots) {

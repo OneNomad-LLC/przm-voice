@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { randomUUID } from 'node:crypto';
 import type { PersonaConfig, EvolutionProposal, ProposalType, SoulFiles } from './types.js';
 import { loadProposals } from './evolution.js';
 import { readAllSoulFiles } from './soul.js';
+import { getStorage } from './storage/index.js';
 
 /**
  * Procedural bridge — shared interchange between Persona and Engram.
@@ -136,11 +136,11 @@ export function importRulesFromBridge(
     imported++;
   }
 
-  // Save updated proposals
+  // Save updated proposals via the storage adapter so postgres-mode
+  // tenant scoping holds. The bridge JSON itself stays on the host
+  // filesystem because it's a cross-process interop file with Engram.
   if (imported > 0) {
-    const dir = dirname(join(config.dataDir, 'proposals.json'));
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(join(config.dataDir, 'proposals.json'), JSON.stringify(existing, null, 2), 'utf-8');
+    getStorage().putProposals(existing);
   }
 
   return { imported, skipped, conflicts };
