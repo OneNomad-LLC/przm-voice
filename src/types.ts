@@ -47,7 +47,8 @@ export type SignalType =
   | 'explicit_feedback' // Direct feedback about behavior
   | 'style_correction' // User corrected tone / format / style
   | 'praise'           // User praised a specific approach
-  | 'abandonment';     // User abruptly changed topic
+  | 'abandonment'      // User abruptly changed topic
+  | 're_ask';          // User asked something they asked before
 
 export interface BehavioralSignal {
   id: string;
@@ -87,7 +88,8 @@ export interface BehavioralProfile {
     satisfaction: number;
     signalCount: number;
   }>;
-  recentFeedback: string[];     // Last 10 explicit feedback items
+  recentFeedback: string[];     // Last 10 explicit feedback items (FIFO)
+  pinnedFeedback: string[];     // User-tagged entries; unbounded
   lastUpdated: string;
 }
 
@@ -115,6 +117,7 @@ export const DEFAULT_PROFILE: BehavioralProfile = {
   stylePreferences: { ...DEFAULT_STYLE_PREFERENCES },
   topicPreferences: {},
   recentFeedback: [],
+  pinnedFeedback: [],
   lastUpdated: new Date().toISOString(),
 };
 
@@ -209,6 +212,11 @@ export const DEFAULT_COGNITIVE_LOAD: CognitiveLoadState = {
 export interface SessionState {
   emotionalTone: EmotionalTone;
   styleVector: StyleVector;
+  // Fast-decay per-session style mirror. Distinct from the long-running
+  // traitState.baselineStyleVector — this is "what does the user sound
+  // like RIGHT NOW," EMA-blended at alpha=0.3 for ~3-turn responsiveness.
+  // Null until the first observation; resets between sessions.
+  currentStyleVector: StyleVector | null;
   cognitiveLoad: CognitiveLoadState;
   messageCount: number;
   startedAt: string;
@@ -235,6 +243,7 @@ export interface EmotionalAssociation {
 export const DEFAULT_SESSION_STATE: SessionState = {
   emotionalTone: { ...NEUTRAL_TONE },
   styleVector: { ...DEFAULT_STYLE_VECTOR },
+  currentStyleVector: null,
   cognitiveLoad: { ...DEFAULT_COGNITIVE_LOAD },
   messageCount: 0,
   startedAt: new Date().toISOString(),

@@ -41,7 +41,11 @@ export function getAdaptations(config: PersonaConfig, category?: string): string
   const prefs = profile.stylePreferences;
 
   // ── Style Mirroring ──────────────────────────────────────────
-  const targetStyle = computeTargetStyle(currentSession.styleVector, traitState.baselineStyleVector);
+  // Prefer the fast-decay currentStyleVector (alpha=0.3 per turn,
+  // ~3-turn responsiveness) when it's been populated; fall back to
+  // session.styleVector for backward compatibility.
+  const userStyle = currentSession.currentStyleVector ?? currentSession.styleVector;
+  const targetStyle = computeTargetStyle(userStyle, traitState.baselineStyleVector);
 
   if (targetStyle.formality < 0.35) {
     lines.push('Match the user\'s casual tone. No corporate speak.');
@@ -170,9 +174,16 @@ export function getAdaptations(config: PersonaConfig, category?: string): string
     }
   }
 
-  // ── Recent explicit feedback ─────────────────────────────────
-  if (profile.recentFeedback.length > 0) {
-    const recent = profile.recentFeedback.slice(-3);
+  // ── Explicit feedback (recent + pinned) ──────────────────────
+  // Pinned entries are user-curated and always relevant; recent
+  // entries are the last 10 (FIFO). Pinned leads so the model sees
+  // the durable preferences first.
+  const pinned = profile.pinnedFeedback ?? [];
+  const recent = (profile.recentFeedback ?? []).slice(-3);
+  if (pinned.length > 0) {
+    lines.push(`Pinned user feedback: ${pinned.map(f => `"${f}"`).join(', ')}`);
+  }
+  if (recent.length > 0) {
     lines.push(`Recent user feedback: ${recent.map(f => `"${f}"`).join(', ')}`);
   }
 

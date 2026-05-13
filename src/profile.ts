@@ -33,10 +33,21 @@ export function loadProfile(config: PersonaConfig): BehavioralProfile {
       ...raw,
       stylePreferences: { ...DEFAULT_STYLE_PREFERENCES, ...raw.stylePreferences },
       stats: { ...DEFAULT_PROFILE.stats, ...raw.stats },
+      // Backfill pinnedFeedback for profiles persisted under v2.4 schema.
+      recentFeedback: Array.isArray(raw.recentFeedback) ? raw.recentFeedback : [],
+      pinnedFeedback: Array.isArray(raw.pinnedFeedback) ? raw.pinnedFeedback : [],
     };
   } catch {
     return { ...DEFAULT_PROFILE };
   }
+}
+
+/**
+ * Persist a profile directly. Used by feedback pin/unpin which mutates
+ * profile fields outside the signal-rebuild path.
+ */
+export function saveProfileExternal(config: PersonaConfig, profile: BehavioralProfile): void {
+  saveProfile(config, profile);
 }
 
 function saveProfile(config: PersonaConfig, profile: BehavioralProfile): void {
@@ -83,7 +94,12 @@ export function rebuildProfile(config: PersonaConfig, signals: BehavioralSignal[
       extractStylePatterns(signal, prefs);
     }
     if (signal.type === 'explicit_feedback') {
-      if (!profile.recentFeedback.includes(signal.content)) {
+      // Skip if already captured (either in the rolling recent window
+      // or curated into pinnedFeedback). Pinned is the canonical home;
+      // we don't want recent to shadow it.
+      const inRecent = profile.recentFeedback.includes(signal.content);
+      const inPinned = (profile.pinnedFeedback ?? []).includes(signal.content);
+      if (!inRecent && !inPinned) {
         profile.recentFeedback.push(signal.content);
         if (profile.recentFeedback.length > 10) {
           profile.recentFeedback = profile.recentFeedback.slice(-10);

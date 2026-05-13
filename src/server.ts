@@ -8,13 +8,13 @@ import { readSoulFile, readAllSoulFiles, writeSoulFile, initSoulFiles, buildSoul
 import { readAllJournalFiles, clearJournal } from './journal.js';
 import { listRoles, readRole, writeRole, getActiveRole, setActiveRole } from './role.js';
 import { listSoulPresets, readSoulPreset, applySoulPreset } from './soul-presets.js';
-import { recordSignal, loadSignals, getSignalCounts } from './signals.js';
-import { loadProfile, rebuildProfile } from './profile.js';
+import { recordSignal, loadSignals, getSignalCounts, detectSignals } from './signals.js';
+import { loadProfile, rebuildProfile, saveProfileExternal } from './profile.js';
 import { getAdaptations, getProfileSummary, setSessionState, getSessionState } from './adaptations.js';
 import { generateProposals, loadProposals, applyProposal, rejectProposal } from './evolution.js';
 import { analyzeUserMessages, updateSoulFromSynthesis } from './synthesis.js';
 import { detectEmotionalTone, emotionalValence, emotionalArousal, detectDyads, loadTraitState, saveTraitState, updateEmotionalAssociation } from './emotions.js';
-import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain } from './traits.js';
+import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain, blendStyleVectors } from './traits.js';
 import { updateCognitiveLoad, getVerbosityMultiplier } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
 import type { SignalType, SessionState } from './types.js';
@@ -30,6 +30,40 @@ let session: SessionState = { ...DEFAULT_SESSION_STATE, startedAt: new Date().to
 setSessionState(session);
 
 let lastUserMessage: string | undefined;
+
+// ── Throttled trait-state persistence ─────────────────────────────
+// Trait state (Big Five EMA, domain ratio, emotional associations)
+// changes by tiny amounts per message. Writing every call burns disk
+// I/O for inference deltas that won't materially affect adaptations
+// until they accumulate. Hold it in memory and save every N messages.
+//
+// Tests / synthesis / consolidation can force an immediate flush via
+// forceSaveTraitState(). Set PERSONA_TRAIT_SAVE_INTERVAL=1 to disable
+// throttling entirely.
+const TRAIT_SAVE_INTERVAL = parseInt(process.env.PERSONA_TRAIT_SAVE_INTERVAL ?? '10', 10);
+let traitSaveCounter = 0;
+let traitStateCache: ReturnType<typeof loadTraitState> | null = null;
+
+function getTraitState(): ReturnType<typeof loadTraitState> {
+  if (!traitStateCache) traitStateCache = loadTraitState(config);
+  return traitStateCache;
+}
+
+function maybeSaveTraitState(traitState: ReturnType<typeof loadTraitState>): void {
+  traitStateCache = traitState;
+  traitSaveCounter += 1;
+  if (traitSaveCounter >= TRAIT_SAVE_INTERVAL) {
+    traitSaveCounter = 0;
+    saveTraitState(config, traitState);
+  }
+}
+
+function forceSaveTraitState(traitState?: ReturnType<typeof loadTraitState>): void {
+  traitSaveCounter = 0;
+  const state = traitState ?? traitStateCache ?? loadTraitState(config);
+  traitStateCache = state;
+  saveTraitState(config, state);
+}
 
 function text(t: string) { return { content: [{ type: 'text' as const, text: t }] }; }
 function json(data: any) { return text(JSON.stringify(data, null, 2)); }
@@ -47,14 +81,24 @@ function processUserMessage(message: string): void {
     session.styleVector[key] = session.styleVector[key] * 0.7 + msgStyle[key] * 0.3;
   }
 
+  // Fast-decay session-style mirror. Distinct from session.styleVector
+  // (which lingers at alpha=0.3 on top of the prior value too, but is
+  // also persisted across server restarts via DEFAULT_STYLE_VECTOR
+  // initialization): currentStyleVector is null at session start and
+  // clones the first observation, then EMA-blends at alpha=0.3 for
+  // ~3-turn responsiveness to a tone shift.
+  session.currentStyleVector = session.currentStyleVector
+    ? blendStyleVectors(session.currentStyleVector, msgStyle, 0.3)
+    : { ...msgStyle };
+
   session.cognitiveLoad = updateCognitiveLoad(session.cognitiveLoad, message, lastUserMessage);
 
-  const traitState = loadTraitState(config);
+  const traitState = getTraitState();
   const techRatio = detectTechnicalDomain(message);
   traitState.domainTechnicalRatio = traitState.domainTechnicalRatio * 0.95 + techRatio * 0.05;
   traitState.bigFive = updateBigFive(traitState.bigFive, message, traitState.domainTechnicalRatio);
   traitState.baselineStyleVector = updateBaselineStyle(traitState.baselineStyleVector, msgStyle);
-  saveTraitState(config, traitState);
+  maybeSaveTraitState(traitState);
 
   session.messageCount++;
   session.recentMessages = [...session.recentMessages, message].slice(-5);
@@ -149,7 +193,7 @@ server.registerTool(
   },
   async () => {
     const session = getSessionState();
-    const traitState = loadTraitState(config);
+    const traitState = getTraitState();
     const tone = session.emotionalTone;
 
     const positiveSum = tone.joy + tone.trust + tone.anticipation;
@@ -184,34 +228,67 @@ server.registerTool(
 const VALID_SIGNALS: SignalType[] = [
   'correction', 'approval', 'frustration', 'elaboration', 'simplification',
   'code_accepted', 'code_rejected', 'regen_request', 'explicit_feedback',
-  'style_correction', 'praise', 'abandonment',
+  'style_correction', 'praise', 'abandonment', 're_ask',
 ];
+
+// Recent user-message buffer for re_ask detection inside persona_signal.
+const recentUserMessages: string[] = [];
 
 server.registerTool(
   'persona_signal',
   {
     title: 'Record Signal',
-    description: 'Record a user reaction: correction, approval, frustration, elaboration, simplification, praise, etc. Call immediately when noticed.',
+    description: 'Record a user reaction. Two modes: (1) explicit — pass `type` and `content`; (2) auto-detect — pass `userMessage` and the regex catalog classifies zero or more signals. When both are supplied, `type` wins and detection is skipped.',
     inputSchema: z.object({
-      type: z.enum(VALID_SIGNALS as [string, ...string[]]).describe('Signal type.'),
-      content: z.string().describe('What triggered it.'),
+      type: z.enum(VALID_SIGNALS as [string, ...string[]]).optional().describe('Explicit signal type. Takes precedence over userMessage detection.'),
+      content: z.string().optional().describe('What triggered the signal. Required with explicit type.'),
+      userMessage: z.string().optional().describe('Raw user message to auto-classify. Runs the local regex catalog; may yield 0+ signals.'),
       context: z.string().optional().describe('Surrounding context.'),
       category: z.string().optional().describe('Topic (code, writing, research, etc.).'),
     }),
   },
-  async ({ type, content, context, category }) => {
-    const signal = recordSignal(config, type as SignalType, content, context, category);
+  async ({ type, content, userMessage, context, category }) => {
+    // Resolve which path: explicit type wins. Detection requires userMessage.
+    const recorded: Array<{ id: string; type: SignalType; confidence?: number }> = [];
+    let primaryContent: string | undefined;
 
-    processUserMessage(content);
+    if (type) {
+      const c = content ?? userMessage;
+      if (!c) {
+        return json({ error: 'missing_content', message: 'Provide `content` (or `userMessage`) with explicit `type`.' });
+      }
+      const signal = recordSignal(config, type as SignalType, c, context, category);
+      recorded.push({ id: signal.id, type: signal.type });
+      primaryContent = c;
+    } else if (userMessage) {
+      const detected = detectSignals(userMessage, recentUserMessages);
+      for (const d of detected) {
+        const signal = recordSignal(config, d.type, userMessage, context, category);
+        recorded.push({ id: signal.id, type: signal.type, confidence: d.confidence });
+      }
+      primaryContent = userMessage;
+    } else {
+      return json({ error: 'missing_input', message: 'Provide either `type`+`content` (explicit) or `userMessage` (auto-detect).' });
+    }
 
-    if (category) {
-      const traitState = loadTraitState(config);
-      const valence = type === 'approval' || type === 'praise' || type === 'code_accepted' ? 0.5 :
-                      type === 'frustration' || type === 'anger' ? -0.8 :
-                      type === 'correction' || type === 'code_rejected' ? -0.4 : 0;
+    // Push into the re_ask buffer for subsequent detections.
+    if (primaryContent) {
+      recentUserMessages.push(primaryContent);
+      if (recentUserMessages.length > 50) recentUserMessages.splice(0, recentUserMessages.length - 50);
+    }
+
+    processUserMessage(primaryContent!);
+
+    if (category && recorded.length > 0) {
+      const traitState = getTraitState();
+      // Use the strongest-affect detected type (approval/praise > correction > frustration etc).
+      const effectiveType = recorded[0].type;
+      const valence = effectiveType === 'approval' || effectiveType === 'praise' || effectiveType === 'code_accepted' ? 0.5 :
+                      effectiveType === 'frustration' ? -0.8 :
+                      effectiveType === 'correction' || effectiveType === 'code_rejected' ? -0.4 : 0;
       if (valence !== 0) {
         updateEmotionalAssociation(traitState, category, valence, Math.abs(valence));
-        saveTraitState(config, traitState);
+        maybeSaveTraitState(traitState);
       }
     }
 
@@ -226,7 +303,7 @@ server.registerTool(
       const newProposals = generateProposals(config, signals);
       if (newProposals.length > 0) {
         return json({
-          signal: { id: signal.id, type: signal.type },
+          signals: recorded,
           brainState: {
             emotionalValence: emotionalValence(session.emotionalTone).toFixed(2),
             cognitiveLoad: session.cognitiveLoad.load.toFixed(2),
@@ -237,19 +314,19 @@ server.registerTool(
             content: p.content.slice(0, 100),
             confidence: p.confidence,
           })),
-          message: `Signal recorded. ${newProposals.length} new evolution proposal(s) generated.`,
+          message: `${recorded.length} signal(s) recorded. ${newProposals.length} new evolution proposal(s) generated.`,
         });
       }
     }
 
     return json({
-      signal: { id: signal.id, type: signal.type },
+      signals: recorded,
       brainState: {
         emotionalValence: emotionalValence(session.emotionalTone).toFixed(2),
         cognitiveLoad: session.cognitiveLoad.load.toFixed(2),
         inFlow: session.cognitiveLoad.inFlow,
       },
-      message: 'Signal recorded.',
+      message: recorded.length === 0 ? 'No signals detected.' : `${recorded.length} signal(s) recorded.`,
     });
   }
 );
@@ -262,12 +339,102 @@ server.registerTool(
   'persona_profile',
   {
     title: 'View Profile',
-    description: 'Behavioral profile: style preferences, satisfaction, topic patterns, Big Five traits.',
-    inputSchema: z.object({}),
+    description: 'Behavioral profile: style preferences, satisfaction, topic patterns, Big Five traits, and explicit feedback (recent + pinned).',
+    inputSchema: z.object({
+      format: z.enum(['text', 'json']).optional().describe('Output format. text (default) returns a human-readable summary; json returns structured profile data.'),
+    }),
   },
-  async () => {
+  async ({ format }) => {
+    const profile = loadProfile(config);
+    if (format === 'json') {
+      return json({
+        stats: profile.stats,
+        stylePreferences: profile.stylePreferences,
+        topicPreferences: profile.topicPreferences,
+        feedback: {
+          recent: profile.recentFeedback ?? [],
+          pinned: profile.pinnedFeedback ?? [],
+        },
+        lastUpdated: profile.lastUpdated,
+      });
+    }
     const summary = getProfileSummary(config);
-    return text(summary || 'No profile yet. Record signals to build one.');
+    const feedbackLines: string[] = [];
+    const pinned = profile.pinnedFeedback ?? [];
+    const recent = profile.recentFeedback ?? [];
+    if (pinned.length > 0) {
+      feedbackLines.push('', `Pinned feedback (${pinned.length}):`);
+      for (let i = 0; i < pinned.length; i++) feedbackLines.push(`  [${i}] ${pinned[i]}`);
+    }
+    if (recent.length > 0) {
+      feedbackLines.push('', `Recent feedback (${recent.length}):`);
+      for (const f of recent.slice(-5)) feedbackLines.push(`  - ${f}`);
+    }
+    const body = (summary || 'No profile yet. Record signals to build one.') + feedbackLines.join('\n');
+    return text(body);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// FEEDBACK PIN / UNPIN
+// ─────────────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'persona_feedback_pin',
+  {
+    title: 'Pin Feedback',
+    description: 'Pin a piece of explicit feedback so it persists beyond the 10-entry recentFeedback cap. If feedbackContent matches an entry in recentFeedback, it moves; otherwise the content is appended as a fresh pinned entry.',
+    inputSchema: z.object({
+      feedbackContent: z.string().describe('Feedback text to pin. Exact or substring match against recentFeedback; otherwise stored verbatim.'),
+    }),
+  },
+  async ({ feedbackContent }) => {
+    const profile = loadProfile(config);
+    const recent = profile.recentFeedback ?? [];
+    const pinned = profile.pinnedFeedback ?? [];
+
+    // Try to locate an existing recentFeedback entry to move.
+    const idx = recent.findIndex(f => f === feedbackContent || f.includes(feedbackContent) || feedbackContent.includes(f));
+    let movedFromRecent = false;
+    let entry = feedbackContent;
+    if (idx >= 0) {
+      entry = recent[idx];
+      recent.splice(idx, 1);
+      movedFromRecent = true;
+    }
+    if (!pinned.includes(entry)) pinned.push(entry);
+
+    profile.recentFeedback = recent;
+    profile.pinnedFeedback = pinned;
+    saveProfileExternal(config, profile);
+
+    return json({
+      pinned: entry,
+      movedFromRecent,
+      counts: { recent: recent.length, pinned: pinned.length },
+    });
+  }
+);
+
+server.registerTool(
+  'persona_feedback_unpin',
+  {
+    title: 'Unpin Feedback',
+    description: 'Remove an entry from pinnedFeedback by index. Use persona_profile with format=json to see indices.',
+    inputSchema: z.object({
+      index: z.number().int().nonnegative().describe('Index into pinnedFeedback.'),
+    }),
+  },
+  async ({ index }) => {
+    const profile = loadProfile(config);
+    const pinned = profile.pinnedFeedback ?? [];
+    if (index >= pinned.length) {
+      return json({ error: 'index_out_of_range', length: pinned.length });
+    }
+    const [removed] = pinned.splice(index, 1);
+    profile.pinnedFeedback = pinned;
+    saveProfileExternal(config, profile);
+    return json({ unpinned: removed, counts: { pinned: pinned.length } });
   }
 );
 
@@ -284,7 +451,7 @@ server.registerTool(
     const profile = loadProfile(config);
     const proposals = loadProposals(config);
     const files = readAllSoulFiles(config);
-    const traitState = loadTraitState(config);
+    const traitState = getTraitState();
 
     // Bridge status (new observability)
     let bridge: any = { status: 'no bridge file' };
@@ -699,8 +866,12 @@ server.registerTool(
       processUserMessage(msg);
     }
 
+    // Synthesis is an explicit, infrequent operation — flush trait
+    // inferences immediately rather than waiting for the throttle.
+    forceSaveTraitState();
+
     const result = updateSoulFromSynthesis(config, parsed);
-    const traitState = loadTraitState(config);
+    const traitState = getTraitState();
 
     return json({
       traits: {
@@ -738,7 +909,7 @@ server.registerTool(
     const parsed: string[] = JSON.parse(messages);
     const traits = analyzeUserMessages(parsed);
 
-    const traitState = loadTraitState(config);
+    const traitState = getTraitState();
     let tempBigFive = { ...traitState.bigFive };
     for (const msg of parsed) {
       const techRatio = detectTechnicalDomain(msg);
@@ -791,6 +962,13 @@ server.registerTool(
     const signals = loadSignals(config);
     const counts = getSignalCounts(signals);
     recordSessionSummary(config, session, counts);
+
+    // Flush any throttled in-memory state to disk before consolidation
+    // reads it. Consolidation mutates trait state on disk via its own
+    // load/save cycle, so we then invalidate the cache so subsequent
+    // reads pick up the consolidated values.
+    forceSaveTraitState();
+    traitStateCache = null;
 
     const result = runConsolidation(config);
 
