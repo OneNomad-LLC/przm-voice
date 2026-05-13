@@ -180,7 +180,7 @@ Persona is an MCP server. It works with anything that supports the Model Context
 ### Claude Code
 
 ```bash
-claude mcp add persona -- npx @onenomaddev/persona-mcp
+claude mcp add persona -- npx @onenomad/persona-mcp
 ```
 
 ### Claude Desktop
@@ -192,7 +192,7 @@ Add to your Claude Desktop config file. On macOS it's at `~/Library/Application 
   "mcpServers": {
     "persona": {
       "command": "npx",
-      "args": ["@onenomaddev/persona-mcp"]
+      "args": ["@onenomad/persona-mcp"]
     }
   }
 }
@@ -209,7 +209,7 @@ Add to your client's MCP config:
   "mcpServers": {
     "persona": {
       "command": "npx",
-      "args": ["@onenomaddev/persona-mcp"]
+      "args": ["@onenomad/persona-mcp"]
     }
   }
 }
@@ -503,7 +503,7 @@ OneNomad's) you can point Persona at it with two commands.
 
 ```sh
 # 1. Install the package as usual.
-pnpm add -g @onenomaddev/persona-mcp  # or `npm i -g`, `npx`, etc.
+pnpm add -g @onenomad/persona-mcp  # or `npm i -g`, `npx`, etc.
 
 # 2. Log in. The URL is supplied — there is no default.
 persona-mcp login https://getpyre.ai
