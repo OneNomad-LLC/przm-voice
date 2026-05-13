@@ -5,6 +5,8 @@
  * Usage:
  *   persona-mcp                                              run MCP stdio server (back-compat)
  *   persona-mcp read [--project <p>] [--files <list>]        read soul files, output markdown
+ *   persona-mcp login [<server>] [--server <url>]            device-code login to Pyre Cloud
+ *   persona-mcp logout                                       clear saved Pyre Cloud credentials
  *   persona-mcp help
  *
  * The CLI is additive — it wraps the same soul-file primitives the MCP

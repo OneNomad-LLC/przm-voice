@@ -496,6 +496,72 @@ STORAGE_BACKEND=postgres DATABASE_URL=postgres://... pnpm run smoke
 
 Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres backend is for hosted environments where many users share infrastructure but each must see only their own personality data.
 
+## Hosted (Pyre Cloud)
+
+The default install is fully local. If you run a Pyre server (yours or
+OneNomad's) you can point Persona at it with two commands.
+
+```sh
+# 1. Install the package as usual.
+pnpm add -g @onenomad/persona-mcp     # or `npm i -g`, `npx`, etc.
+
+# 2. Log in. The URL is supplied — there is no default.
+persona-mcp login https://your-pyre-server.example.com
+# → Visit https://.../dashboard/devices/PYRE-XXXX-XXXX to authorize.
+#   Code: PYRE-XXXX-XXXX
+```
+
+A browser tab opens automatically; if it doesn't, copy the printed URL.
+Approve the device on the Pyre dashboard and the CLI writes
+`~/.pyre/credentials.json` (mode 0600). After that, runtime calls
+transparently use the cloud backend — no extra flags, no MCP config
+changes.
+
+### Override the server URL
+
+Three ways to supply the URL to `login`, in priority order:
+
+```sh
+persona-mcp login https://pyre.example.com         # positional
+persona-mcp login --server https://pyre.example.com # flag
+PYRE_API_URL=https://pyre.example.com persona-mcp login  # env
+```
+
+If none is provided, login exits with an error. There is no hardcoded
+default.
+
+### Force local mode (CI, headless, sandboxes)
+
+```sh
+STORAGE_BACKEND=file persona-mcp        # always uses ~/.claude/persona
+```
+
+`STORAGE_BACKEND=file` wins over any credentials file on disk.
+
+### Override credential fields (CI bots)
+
+If a credentials file exists but CI needs a different key or URL,
+either field can be overridden individually:
+
+```sh
+PERSONA_API_KEY=sk_pyre_ci_xxx persona-mcp
+PERSONA_API_URL=https://staging.pyre.example.com persona-mcp
+```
+
+The env value wins over the matching field in `credentials.json`.
+
+### Log out
+
+```sh
+persona-mcp logout      # removes ~/.pyre/credentials.json, idempotent
+```
+
+### Credentials file path
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PYRE_CREDENTIALS_FILE` | `~/.pyre/credentials.json` | Override where credentials live. File is mode 0600 in a 0700 directory. |
+
 ## License
 
 Licensed under the [Business Source License 1.1](LICENSE).

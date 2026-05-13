@@ -6,6 +6,8 @@
  * Usage:
  *   persona-mcp                                              run MCP stdio server (back-compat)
  *   persona-mcp read [--project <p>] [--files <list>]        read soul files, output markdown
+ *   persona-mcp login [<server>] [--server <url>]            device-code login to Pyre Cloud
+ *   persona-mcp logout                                       clear saved Pyre Cloud credentials
  *   persona-mcp help
  *
  * The CLI is additive — it wraps the same soul-file primitives the MCP
@@ -23,12 +25,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig } from './config.js';
 import { SOUL_FILE_NAMES, type SoulFiles } from './types.js';
+import { runLogin } from './auth/login.js';
+import { deleteCredentials } from './auth/credentials.js';
 
 const HELP = `persona-mcp — personality CLI
 
 Usage:
   persona-mcp                                  run MCP stdio server
   persona-mcp read [opts]                      read soul files
+  persona-mcp login [<server>] [opts]          device-code login to Pyre Cloud
+  persona-mcp logout                           clear saved Pyre Cloud credentials
   persona-mcp help                             this message
 
 read options:
@@ -36,8 +42,19 @@ read options:
   --files <list>   comma-separated subset of: personality,style,skill
                    (default: all three, in that order)
 
+login options:
+  <server>         positional Pyre server URL
+  --server <url>   same, as a flag
+
+  Server URL must come from one of: positional arg, --server flag, or
+  PYRE_API_URL env var. There is no default. Approved credentials are
+  written to ~/.pyre/credentials.json (override path with
+  PYRE_CREDENTIALS_FILE).
+
 Environment:
-  PERSONA_DATA_DIR   data directory (default ~/.claude/persona)
+  PERSONA_DATA_DIR        data directory (default ~/.claude/persona)
+  PYRE_API_URL            default server URL for \`login\`
+  PYRE_CREDENTIALS_FILE   credentials path override (default ~/.pyre/credentials.json)
 `;
 
 const READ_OPTS = {
@@ -120,6 +137,13 @@ async function main(): Promise<void> {
       return;
     case 'read':
       runRead(rest);
+      return;
+    case 'login':
+      await runLogin(rest);
+      return;
+    case 'logout':
+      await deleteCredentials();
+      process.stdout.write('Logged out.\n');
       return;
     default:
       process.stderr.write(`persona-mcp: unknown subcommand "${sub}"\n\n${HELP}`);

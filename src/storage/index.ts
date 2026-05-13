@@ -1,24 +1,36 @@
 import { loadConfig } from '../config.js';
+import { readCredentials } from '../auth/credentials.js';
 import type { StorageAdapter } from './adapter.js';
+import { CloudStorageAdapter } from './cloud-adapter.js';
 import { FileStorageAdapter } from './file-adapter.js';
 import { PostgresStorageAdapter } from './postgres-adapter.js';
 
 export type { StorageAdapter, SessionSummary, SoulName, JournalName } from './adapter.js';
+export { CloudStorageAdapter } from './cloud-adapter.js';
 export { FileStorageAdapter } from './file-adapter.js';
 export { PostgresStorageAdapter } from './postgres-adapter.js';
 
 /**
  * Construct the storage adapter for the running server.
  *
- * STORAGE_BACKEND=file     (default) — on-disk under PERSONA_DATA_DIR
- * STORAGE_BACKEND=postgres          — requires DATABASE_URL and TENANT_ID
+ * Precedence (top wins):
  *
- * The factory is intentionally cheap to call once at startup; the
- * postgres adapter performs its initial SELECT inside the returned
- * promise.
+ *   1. Explicit STORAGE_BACKEND env var.
+ *      - file     → FileStorageAdapter
+ *      - postgres → requires DATABASE_URL + TENANT_ID
+ *      - cloud    → requires PERSONA_API_URL + PERSONA_API_KEY
+ *
+ *   2. ~/.pyre/credentials.json present and parses cleanly →
+ *      CloudStorageAdapter using its api_url / api_key. Individual env
+ *      vars override per-field: PERSONA_API_URL beats file's api_url,
+ *      PERSONA_API_KEY beats file's api_key. This is the "CI bots can
+ *      override one piece" path.
+ *
+ *   3. Fallback → FileStorageAdapter (historical default, unchanged for
+ *      any user with no credentials file and no env vars).
  */
 export async function createStorage(): Promise<StorageAdapter> {
-  const backend = process.env.STORAGE_BACKEND ?? 'file';
+  const backend = process.env.STORAGE_BACKEND;
 
   if (backend === 'file') {
     const config = loadConfig();
@@ -40,7 +52,36 @@ export async function createStorage(): Promise<StorageAdapter> {
     return adapter;
   }
 
-  throw new Error(`Unknown STORAGE_BACKEND: ${backend}`);
+  if (backend === 'cloud') {
+    if (!process.env.PERSONA_API_URL || !process.env.PERSONA_API_KEY) {
+      throw new Error(
+        'STORAGE_BACKEND=cloud requires PERSONA_API_URL and PERSONA_API_KEY',
+      );
+    }
+    const adapter = new CloudStorageAdapter({
+      apiUrl: process.env.PERSONA_API_URL,
+      apiKey: process.env.PERSONA_API_KEY,
+    });
+    await adapter.init();
+    return adapter;
+  }
+
+  if (backend !== undefined && backend !== '') {
+    throw new Error(`Unknown STORAGE_BACKEND: ${backend}`);
+  }
+
+  // No explicit backend. Check for a credentials file.
+  const creds = readCredentials();
+  if (creds) {
+    const apiUrl = process.env.PERSONA_API_URL ?? creds.api_url;
+    const apiKey = process.env.PERSONA_API_KEY ?? creds.api_key;
+    const adapter = new CloudStorageAdapter({ apiUrl, apiKey });
+    await adapter.init();
+    return adapter;
+  }
+
+  const config = loadConfig();
+  return new FileStorageAdapter({ dataDir: config.dataDir });
 }
 
 // ── Module-level singleton ──────────────────────────────────────────
