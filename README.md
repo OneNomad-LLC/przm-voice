@@ -506,7 +506,7 @@ OneNomad's) you can point Persona at it with two commands.
 pnpm add -g @onenomad/persona-mcp  # or `npm i -g`, `npx`, etc.
 
 # 2. Log in. The URL is supplied — there is no default.
-persona-mcp login https://getpyre.ai
+persona-mcp login https://pyre.sh
 # → Visit https://.../dashboard/devices/PYRE-XXXX-XXXX to authorize.
 #   Code: PYRE-XXXX-XXXX
 ```
@@ -522,9 +522,9 @@ changes.
 Three ways to supply the URL to `login`, in priority order:
 
 ```sh
-persona-mcp login https://getpyre.ai         # positional
-persona-mcp login --server https://getpyre.ai # flag
-PYRE_API_URL=https://getpyre.ai persona-mcp login  # env
+persona-mcp login https://pyre.sh         # positional
+persona-mcp login --server https://pyre.sh # flag
+PYRE_API_URL=https://pyre.sh persona-mcp login  # env
 ```
 
 If none is provided, login exits with an error. There is no hardcoded
@@ -545,7 +545,7 @@ either field can be overridden individually:
 
 ```sh
 PERSONA_API_KEY=sk_pyre_ci_xxx persona-mcp
-PERSONA_API_URL=https://staging.getpyre.ai persona-mcp
+PERSONA_API_URL=https://staging.pyre.sh persona-mcp
 ```
 
 The env value wins over the matching field in `credentials.json`.
