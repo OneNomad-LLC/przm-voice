@@ -38,17 +38,39 @@ export interface JournalFiles {
 export type SignalType =
   | 'correction'       // User corrected a response
   | 'approval'         // User approved / accepted / thanked
+  | 'satisfaction'     // User confirmed a task landed / outcome was good
   | 'frustration'      // User expressed frustration
   | 'elaboration'      // User asked for more detail
   | 'simplification'   // User asked to simplify
+  | 'confusion'        // User signaled they don't understand
+  | 'curiosity'        // User asked an exploratory follow-up
+  | 'preference'       // User declared a stable preference going forward
   | 'code_accepted'    // User used generated code
   | 'code_rejected'    // User rejected generated code
+  | 'task_complete'    // User confirmed a non-code task was completed
+  | 'task_abandoned'   // User gave up on or dropped a task
   | 'regen_request'    // Asked to regenerate / try again
   | 'explicit_feedback' // Direct feedback about behavior
   | 'style_correction' // User corrected tone / format / style
   | 'praise'           // User praised a specific approach
   | 'abandonment'      // User abruptly changed topic
-  | 're_ask';          // User asked something they asked before
+  | 'topic_shift'      // User changed subject entirely
+  | 're_ask'           // User asked something they asked before
+  // ── Big Five movement signals ─────────────────────────────────────
+  // Direct "this user is showing themselves as X / wants me to be more
+  // X on Y axis." Distinct from the inferred-from-text Big Five pipeline;
+  // these are explicit nudges that callers (benchmarks, advanced
+  // integrations) can use to move traits directly.
+  | 'extraversion_positive'
+  | 'extraversion_negative'
+  | 'openness_positive'
+  | 'openness_negative'
+  | 'conscientiousness_positive'
+  | 'conscientiousness_negative'
+  | 'agreeableness_positive'
+  | 'agreeableness_negative'
+  | 'neuroticism_positive'
+  | 'neuroticism_negative';
 
 export interface BehavioralSignal {
   id: string;

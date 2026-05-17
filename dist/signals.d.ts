@@ -36,8 +36,17 @@ export interface DetectedSignal {
 /**
  * Detect zero or more signals from a raw user message. Pure pattern
  * matching — runs locally with no API cost. Multiple signal types may
- * fire on the same message (e.g. correction + frustration). The
- * conversation `previousMessages` window is used for re-ask detection.
+ * fire on the same message (e.g. correction + frustration); results
+ * are sorted by confidence so callers that read only the top item
+ * (EvoBench, MCP clients showing "primary classification") see the
+ * strongest signal first. Pure-affect catalogs (frustration,
+ * confusion, satisfaction) are given a slight scoring boost over
+ * action catalogs (correction, regen) when both match the same
+ * message — affect almost always carries the more useful signal for
+ * personality adaptation downstream.
+ *
+ * The conversation `previousMessages` window is used for re-ask
+ * detection.
  */
 export declare function detectSignals(userMessage: string, previousMessages?: string[]): DetectedSignal[];
 /**

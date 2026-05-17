@@ -18,7 +18,7 @@ import { detectEmotionalTone, emotionalValence, emotionalArousal, detectDyads, l
 import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain, blendStyleVectors } from './traits.js';
 import { updateCognitiveLoad, getVerbosityMultiplier } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
-import type { SignalType, SessionState } from './types.js';
+import type { SignalType, SessionState, BigFiveTraits, TraitState } from './types.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
 
 const config = loadConfig();
@@ -78,7 +78,21 @@ function json(data: any) { return text(JSON.stringify(data, null, 2)); }
 
 // ── Helper: process a user message through all brain systems ───────
 
-function processUserMessage(message: string): void {
+interface ProcessUserMessageOptions {
+  /**
+   * Skip the text-inference Big Five update for this turn. Used when an
+   * explicit Big Five movement signal already nudged trait state — the
+   * implicit text read would otherwise compete with the explicit signal
+   * and drag traits back toward neutral on benchmark-style "Let's go"
+   * filler text.
+   */
+  skipBigFiveInference?: boolean;
+}
+
+function processUserMessage(
+  message: string,
+  opts: ProcessUserMessageOptions = {},
+): void {
   const tone = detectEmotionalTone(message, session.recentMessages);
   for (const key of Object.keys(tone) as (keyof typeof tone)[]) {
     session.emotionalTone[key] = session.emotionalTone[key] * 0.7 + tone[key] * 0.3;
@@ -104,7 +118,15 @@ function processUserMessage(message: string): void {
   const traitState = getTraitState();
   const techRatio = detectTechnicalDomain(message);
   traitState.domainTechnicalRatio = traitState.domainTechnicalRatio * 0.95 + techRatio * 0.05;
-  traitState.bigFive = updateBigFive(traitState.bigFive, message, traitState.domainTechnicalRatio);
+  if (!opts.skipBigFiveInference) {
+    traitState.bigFive = updateBigFive(traitState.bigFive, message, traitState.domainTechnicalRatio);
+  } else {
+    // Still bump sample count + reliability so explicit-signal turns
+    // count toward "this profile has seen N interactions" the same as
+    // inferred ones.
+    traitState.bigFive.sampleCount = (traitState.bigFive.sampleCount ?? 0) + 1;
+    if (traitState.bigFive.sampleCount >= 15) traitState.bigFive.reliable = true;
+  }
   traitState.baselineStyleVector = updateBaselineStyle(traitState.baselineStyleVector, msgStyle);
   maybeSaveTraitState(traitState);
 
@@ -234,10 +256,60 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 const VALID_SIGNALS: SignalType[] = [
-  'correction', 'approval', 'frustration', 'elaboration', 'simplification',
-  'code_accepted', 'code_rejected', 'regen_request', 'explicit_feedback',
-  'style_correction', 'praise', 'abandonment', 're_ask',
+  'correction', 'approval', 'satisfaction', 'frustration', 'elaboration',
+  'simplification', 'confusion', 'curiosity', 'preference',
+  'code_accepted', 'code_rejected', 'task_complete', 'task_abandoned',
+  'regen_request', 'explicit_feedback', 'style_correction', 'praise',
+  'abandonment', 'topic_shift', 're_ask',
+  'extraversion_positive', 'extraversion_negative',
+  'openness_positive', 'openness_negative',
+  'conscientiousness_positive', 'conscientiousness_negative',
+  'agreeableness_positive', 'agreeableness_negative',
+  'neuroticism_positive', 'neuroticism_negative',
 ];
+
+type BigFiveAxis = 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism';
+
+// Big Five signal types that directly nudge trait state. Outside this
+// set, persona_signal records the signal but only the text-based
+// inferTraitSignals path moves Big Five.
+const BIG_FIVE_SIGNAL_AXIS: Partial<Record<SignalType, { axis: BigFiveAxis; direction: 1 | -1 }>> = {
+  extraversion_positive: { axis: 'extraversion', direction: 1 },
+  extraversion_negative: { axis: 'extraversion', direction: -1 },
+  openness_positive: { axis: 'openness', direction: 1 },
+  openness_negative: { axis: 'openness', direction: -1 },
+  conscientiousness_positive: { axis: 'conscientiousness', direction: 1 },
+  conscientiousness_negative: { axis: 'conscientiousness', direction: -1 },
+  agreeableness_positive: { axis: 'agreeableness', direction: 1 },
+  agreeableness_negative: { axis: 'agreeableness', direction: -1 },
+  neuroticism_positive: { axis: 'neuroticism', direction: 1 },
+  neuroticism_negative: { axis: 'neuroticism', direction: -1 },
+};
+
+/**
+ * Apply a direct Big Five trait nudge from an explicit signal.
+ * Treats each call as one EMA observation toward the target value:
+ * positive direction observes 0.5 + 0.4 * intensity (so intensity=1
+ * targets 0.9), negative observes the mirror. Uses the same EMA decay
+ * as the inferred-from-text path so the two routes compose cleanly.
+ */
+function applyBigFiveSignalNudge(
+  state: TraitState,
+  type: SignalType,
+  intensity: number,
+): boolean {
+  const mapping = BIG_FIVE_SIGNAL_AXIS[type];
+  if (!mapping) return false;
+  const clampedIntensity = Math.max(0, Math.min(1, intensity));
+  const offset = 0.4 * clampedIntensity * mapping.direction;
+  const observation = 0.5 + offset;
+  const EMA_DECAY = 0.95;
+  const current = state.bigFive[mapping.axis];
+  state.bigFive[mapping.axis] = current * EMA_DECAY + observation * (1 - EMA_DECAY);
+  // sampleCount + reliable are bumped by the no-inference branch in
+  // processUserMessage so we don't double-count.
+  return true;
+}
 
 // Recent user-message buffer for re_ask detection inside persona_signal.
 const recentUserMessages: string[] = [];
@@ -253,12 +325,16 @@ server.registerTool(
       userMessage: z.string().optional().describe('Raw user message to auto-classify. Runs the local regex catalog; may yield 0+ signals.'),
       context: z.string().optional().describe('Surrounding context.'),
       category: z.string().optional().describe('Topic (code, writing, research, etc.).'),
+      intensity: z.number().min(0).max(1).optional().describe('Strength of the signal in [0,1]. Only used by Big Five movement types (extraversion_positive, openness_negative, etc.) to nudge trait state directly. Default 0.5.'),
     }),
   },
-  async ({ type, content, userMessage, context, category }) => {
+  async ({ type, content, userMessage, context, category, intensity }) => {
     // Resolve which path: explicit type wins. Detection requires userMessage.
     const recorded: Array<{ id: string; type: SignalType; confidence?: number }> = [];
     let primaryContent: string | undefined;
+
+    // Track Big Five movement signals that need a direct trait nudge.
+    const bigFiveNudges: Array<{ type: SignalType; intensity: number }> = [];
 
     if (type) {
       const c = content ?? userMessage;
@@ -267,16 +343,37 @@ server.registerTool(
       }
       const signal = recordSignal(config, type as SignalType, c, context, category);
       recorded.push({ id: signal.id, type: signal.type });
+      if (BIG_FIVE_SIGNAL_AXIS[type as SignalType]) {
+        bigFiveNudges.push({ type: type as SignalType, intensity: intensity ?? 0.5 });
+      }
       primaryContent = c;
     } else if (userMessage) {
       const detected = detectSignals(userMessage, recentUserMessages);
       for (const d of detected) {
         const signal = recordSignal(config, d.type, userMessage, context, category);
         recorded.push({ id: signal.id, type: signal.type, confidence: d.confidence });
+        if (BIG_FIVE_SIGNAL_AXIS[d.type]) {
+          // Auto-detected Big Five signals use confidence as intensity proxy.
+          bigFiveNudges.push({ type: d.type, intensity: d.confidence });
+        }
       }
       primaryContent = userMessage;
     } else {
       return json({ error: 'missing_input', message: 'Provide either `type`+`content` (explicit) or `userMessage` (auto-detect).' });
+    }
+
+    // Apply Big Five direct nudges. The text-inference Big Five step in
+    // processUserMessage is skipped on these turns so the explicit
+    // signal isn't immediately diluted by EMA-ing in the (often
+    // benchmark-filler) text observation.
+    const skipBigFiveInference = bigFiveNudges.length > 0;
+    if (skipBigFiveInference) {
+      const state = getTraitState();
+      let nudged = false;
+      for (const n of bigFiveNudges) {
+        if (applyBigFiveSignalNudge(state, n.type, n.intensity)) nudged = true;
+      }
+      if (nudged) maybeSaveTraitState(state);
     }
 
     // Push into the re_ask buffer for subsequent detections.
@@ -285,15 +382,35 @@ server.registerTool(
       if (recentUserMessages.length > 50) recentUserMessages.splice(0, recentUserMessages.length - 50);
     }
 
-    processUserMessage(primaryContent!);
+    processUserMessage(primaryContent!, { skipBigFiveInference });
 
     if (category && recorded.length > 0) {
       const traitState = getTraitState();
-      // Use the strongest-affect detected type (approval/praise > correction > frustration etc).
+      // Map the primary signal to an emotional valence in [-1, 1]. The
+      // ordering inside detectSignals already puts the strongest signal
+      // first, so recorded[0] is the right anchor here. Magnitudes are
+      // calibrated against pre-existing values for backwards compat:
+      // approval / praise / code_accepted stay at +0.5; frustration
+      // stays at -0.8; correction / code_rejected stay at -0.4.
       const effectiveType = recorded[0].type;
-      const valence = effectiveType === 'approval' || effectiveType === 'praise' || effectiveType === 'code_accepted' ? 0.5 :
-                      effectiveType === 'frustration' ? -0.8 :
-                      effectiveType === 'correction' || effectiveType === 'code_rejected' ? -0.4 : 0;
+      const valenceTable: Partial<Record<SignalType, number>> = {
+        approval: 0.5,
+        praise: 0.6,
+        satisfaction: 0.6,
+        code_accepted: 0.5,
+        task_complete: 0.4,
+        curiosity: 0.2,
+        preference: 0.1,
+        correction: -0.4,
+        style_correction: -0.3,
+        code_rejected: -0.4,
+        confusion: -0.3,
+        regen_request: -0.3,
+        abandonment: -0.5,
+        task_abandoned: -0.5,
+        frustration: -0.8,
+      };
+      const valence = valenceTable[effectiveType] ?? 0;
       if (valence !== 0) {
         updateEmotionalAssociation(traitState, category, valence, Math.abs(valence));
         maybeSaveTraitState(traitState);

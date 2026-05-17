@@ -83,14 +83,22 @@ export function rebuildProfile(config, signals) {
         }
         const tp = profile.topicPreferences[cat];
         tp.signalCount++;
-        if (signal.type === 'elaboration')
+        if (signal.type === 'elaboration' || signal.type === 'curiosity')
             tp.verbosity = clamp(tp.verbosity + 0.1, -1, 1);
         if (signal.type === 'simplification')
             tp.verbosity = clamp(tp.verbosity - 0.1, -1, 1);
-        if (signal.type === 'approval' || signal.type === 'praise')
+        if (signal.type === 'approval' ||
+            signal.type === 'praise' ||
+            signal.type === 'satisfaction' ||
+            signal.type === 'task_complete') {
             tp.satisfaction = clamp(tp.satisfaction + 0.05, 0, 1);
-        if (signal.type === 'correction' || signal.type === 'frustration')
+        }
+        if (signal.type === 'correction' ||
+            signal.type === 'frustration' ||
+            signal.type === 'confusion' ||
+            signal.type === 'task_abandoned') {
             tp.satisfaction = clamp(tp.satisfaction - 0.05, 0, 1);
+        }
     }
     // Update deep-dive / quick-answer lists from topic preferences
     prefs.deepDiveTopics = Object.entries(profile.topicPreferences)

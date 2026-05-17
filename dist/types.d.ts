@@ -13,7 +13,7 @@ export interface JournalFiles {
     style: string;
     skill: string;
 }
-export type SignalType = 'correction' | 'approval' | 'frustration' | 'elaboration' | 'simplification' | 'code_accepted' | 'code_rejected' | 'regen_request' | 'explicit_feedback' | 'style_correction' | 'praise' | 'abandonment' | 're_ask';
+export type SignalType = 'correction' | 'approval' | 'satisfaction' | 'frustration' | 'elaboration' | 'simplification' | 'confusion' | 'curiosity' | 'preference' | 'code_accepted' | 'code_rejected' | 'task_complete' | 'task_abandoned' | 'regen_request' | 'explicit_feedback' | 'style_correction' | 'praise' | 'abandonment' | 'topic_shift' | 're_ask' | 'extraversion_positive' | 'extraversion_negative' | 'openness_positive' | 'openness_negative' | 'conscientiousness_positive' | 'conscientiousness_negative' | 'agreeableness_positive' | 'agreeableness_negative' | 'neuroticism_positive' | 'neuroticism_negative';
 export interface BehavioralSignal {
     id: string;
     type: SignalType;

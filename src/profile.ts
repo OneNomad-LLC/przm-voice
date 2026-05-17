@@ -100,10 +100,24 @@ export function rebuildProfile(config: PersonaConfig, signals: BehavioralSignal[
     const tp = profile.topicPreferences[cat];
     tp.signalCount++;
 
-    if (signal.type === 'elaboration') tp.verbosity = clamp(tp.verbosity + 0.1, -1, 1);
+    if (signal.type === 'elaboration' || signal.type === 'curiosity') tp.verbosity = clamp(tp.verbosity + 0.1, -1, 1);
     if (signal.type === 'simplification') tp.verbosity = clamp(tp.verbosity - 0.1, -1, 1);
-    if (signal.type === 'approval' || signal.type === 'praise') tp.satisfaction = clamp(tp.satisfaction + 0.05, 0, 1);
-    if (signal.type === 'correction' || signal.type === 'frustration') tp.satisfaction = clamp(tp.satisfaction - 0.05, 0, 1);
+    if (
+      signal.type === 'approval' ||
+      signal.type === 'praise' ||
+      signal.type === 'satisfaction' ||
+      signal.type === 'task_complete'
+    ) {
+      tp.satisfaction = clamp(tp.satisfaction + 0.05, 0, 1);
+    }
+    if (
+      signal.type === 'correction' ||
+      signal.type === 'frustration' ||
+      signal.type === 'confusion' ||
+      signal.type === 'task_abandoned'
+    ) {
+      tp.satisfaction = clamp(tp.satisfaction - 0.05, 0, 1);
+    }
   }
 
   // Update deep-dive / quick-answer lists from topic preferences
