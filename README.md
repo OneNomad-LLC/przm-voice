@@ -1,12 +1,18 @@
 <p align="center">
-  <img src="./persona-logo.png" alt="Persona" width="120" />
+  <img src="./persona-logo.png" alt="przm Voice" width="120" />
 </p>
 
-# Persona
+# przm Voice <sub>(persona)</sub>
+
+[![przm: Voice](https://img.shields.io/badge/przm-Voice-F59520?style=flat-square&labelColor=1a1a1a)](https://przm.sh)
+[![npm](https://img.shields.io/badge/npm-%40onenomad%2Fpersona--mcp-cb3837?style=flat-square&labelColor=1a1a1a)](https://www.npmjs.com/package/@onenomad/persona-mcp)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square&labelColor=1a1a1a)](LICENSE)
+
+The voice surface of [przm](https://przm.sh), OneNomad's AI reliability suite. Technical handle: `persona`. npm: `@onenomad/persona-mcp`. GitHub: `OneNomad-LLC/persona-mcp`.
 
 Every AI you talk to starts with the same personality. Same "I'd be happy to help!" opener. Same trailing summaries. It doesn't learn that you want code before explanation, or that you're a senior dev who already gets the basics. You correct it, it apologizes, and then next conversation it does the same thing all over again.
 
-Persona changes that. It watches how you interact with an AI and builds a personality from what actually happens. Corrections, approvals, frustration, praise. All of it gets recorded as signals that feed into a behavioral profile. That profile shapes how the agent talks to you going forward. After enough data, the system proposes changes to the agent's personality files that you can review and apply (or toss). The personality grows out of the relationship instead of being hardcoded in a prompt.
+przm Voice changes that. It watches how you interact with an AI and builds a personality from what actually happens. Corrections, approvals, frustration, praise. All of it gets recorded as signals that feed into a behavioral profile. That profile shapes how the agent talks to you going forward. After enough data, the system proposes changes to the agent's personality files that you can review and apply (or toss). The personality grows out of the relationship instead of being hardcoded in a prompt.
 
 No API keys needed. No cloud services. Two runtime dependencies and some JSON on disk. The personality itself lives in three markdown files you can open in any text editor.
 
@@ -22,20 +28,20 @@ No API keys needed. No cloud services. Two runtime dependencies and some JSON on
 - [Architecture](#architecture)
 - [Security](#security)
 - [Use Cases](#use-cases)
-- [Pairs Well With: Engram](#pairs-well-with-engram)
+- [Pairs Well With: przm Memory (engram)](#pairs-well-with-przm-memory-engram)
 - [License](#license)
 
 ## How It Works
 
 ### Soul, Role, Journal
 
-Persona separates the personality into three layers, each with a clear ownership boundary. They get composed at prompt-build time but live in different files so it's never ambiguous what came from where.
+przm Voice separates the personality into three layers, each with a clear ownership boundary. They get composed at prompt-build time but live in different files so it's never ambiguous what came from where.
 
-**Soul** lives at `~/.claude/persona/soul/` and is *user territory*. Three files — PERSONALITY.md, STYLE.md, SKILL.md — that you edit directly via `persona_edit` or your text editor. Persona never auto-writes here. PERSONALITY.md covers who the agent is (tone, humor, directness). STYLE.md covers how it communicates (formatting, verbosity, emoji). SKILL.md covers how it works (when to ask permission, which topics get depth). A small set of core principles is baked into the defaults — honesty, real engagement on hard topics, harm prevention — and you can extend or overwrite the rest.
+**Soul** lives at `~/.claude/persona/soul/` and is *user territory*. Three files — PERSONALITY.md, STYLE.md, SKILL.md — that you edit directly via `persona_edit` or your text editor. The system never auto-writes here. PERSONALITY.md covers who the agent is (tone, humor, directness). STYLE.md covers how it communicates (formatting, verbosity, emoji). SKILL.md covers how it works (when to ask permission, which topics get depth). A small set of core principles is baked into the defaults — honesty, real engagement on hard topics, harm prevention — and you can extend or overwrite the rest.
 
-**Role** is a domain overlay layered on top of the soul. Soul defines *who* the agent is; role defines *what* it's doing right now. Five roles ship bundled — `developer`, `designer`, `pm`, `writer`, `researcher` — and you can drop your own at `~/.claude/persona/roles/<name>/ROLE.md` to override or add new ones. Set the active role globally with `persona_role_set`, or override per call with `persona_context({ role })`. Roles are user territory; Persona never auto-writes them.
+**Role** is a domain overlay layered on top of the soul. Soul defines *who* the agent is; role defines *what* it's doing right now. Five roles ship bundled — `developer`, `designer`, `pm`, `writer`, `researcher` — and you can drop your own at `~/.claude/persona/roles/<name>/ROLE.md` to override or add new ones. Set the active role globally with `persona_role_set`, or override per call with `persona_context({ role })`. Roles are user territory; the system never auto-writes them.
 
-**Journal** lives at `~/.claude/persona/journal/` and is *Persona territory*. When you apply an evolution proposal, the content lands in the journal — never in the soul. The journal is layered into the prompt right alongside the matching soul section, so the agent sees a unified personality, but you can wipe the journal at any time with `persona_journal_clear` without losing your hand-tuned soul edits. This is the same trichotomy [Finch](https://github.com/mattstvartak/finch) uses for its prompt build, and it solves the muddy ownership problem of older persona systems where applied proposals overwrite user-authored files.
+**Journal** lives at `~/.claude/persona/journal/` and is *Voice's territory*. When you apply an evolution proposal, the content lands in the journal — never in the soul. The journal is layered into the prompt right alongside the matching soul section, so the agent sees a unified personality, but you can wipe the journal at any time with `persona_journal_clear` without losing your hand-tuned soul edits. This is the same trichotomy [Pyre](https://pyre.sh) uses for its prompt build, and it solves the muddy ownership problem of older persona systems where applied proposals overwrite user-authored files.
 
 Soul files start mostly empty. A couple of baseline rules like "don't say Great question!" and "read before writing." The rest fills in from real interactions — into the journal, not the soul.
 
@@ -161,7 +167,7 @@ Uses a two-timescale update rule from neuroscience research. Session-level state
 
 ### Sycophancy Resistance
 
-The biggest failure mode of adaptive AI personality systems is sycophancy: optimizing for user approval until the agent becomes a yes-man. Replika demonstrated this problem at scale. Persona addresses it through several mechanisms.
+The biggest failure mode of adaptive AI personality systems is sycophancy: optimizing for user approval until the agent becomes a yes-man. Replika demonstrated this problem at scale. przm Voice addresses it through several mechanisms.
 
 The immutable core principles in PERSONALITY.md (honesty over agreeability, genuine engagement) can't be overwritten by the evolution system. The consolidation pass monitors approval rate and flags if it exceeds 85%. The adaptations layer includes a self-check directive when approval is suspiciously high. And the system treats "user was challenged and came back" as a positive signal, not just "user agreed."
 
@@ -169,7 +175,7 @@ The inner layer (soul files, core principles) constrains the outer layer (adapti
 
 ## Compatibility
 
-Persona is an MCP server. It works with anything that supports the Model Context Protocol over stdio.
+przm Voice is an MCP server. It works with anything that supports the Model Context Protocol over stdio.
 
 - **Claude Code** (CLI and desktop app)
 - **Claude.ai** (via MCP config)
@@ -314,11 +320,11 @@ Then point your MCP client at `dist/server.js`:
 | `persona_role_read` | Read a role file. Returns the user override if present, else the bundled default. |
 | `persona_role_edit` | Override or create a custom role at `dataDir/roles/<name>/ROLE.md`. |
 
-### Journal (Persona's auto-derived notes)
+### Journal (Voice's auto-derived notes)
 
 | Tool | What it does |
 |------|-------------|
-| `persona_journal_read` | Read Persona's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
+| `persona_journal_read` | Read Voice's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
 | `persona_journal_clear` | Wipe the journal without touching the user-edited soul. |
 
 ### Synthesis
@@ -355,7 +361,7 @@ These work in any MCP-compatible client (Claude Code, Cursor, etc.). The MCP ser
 
 ### Installing Slash Commands for Claude Code
 
-The slash commands above are advertised in Persona's MCP server instructions and work automatically in most clients. For Claude Code specifically, you can also install them as custom commands so they show up in the `/` command menu:
+The slash commands above are advertised in the MCP server instructions and work automatically in most clients. For Claude Code specifically, you can also install them as custom commands so they show up in the `/` command menu:
 
 ```bash
 # From the persona directory
@@ -431,35 +437,35 @@ Everything sits at `~/.claude/persona/`. Soul files are plain markdown. Signals 
 
 ## Use Cases
 
-**Personal AI assistant.** You talk to an AI every day and it starts with the same generic personality every time. Persona builds a communication style that fits how you actually work. After a few weeks the agent starts to feel like it knows how to talk to you specifically, not just "a user."
+**Personal AI assistant.** You talk to an AI every day and it starts with the same generic personality every time. przm Voice builds a communication style that fits how you actually work. After a few weeks the agent starts to feel like it knows how to talk to you specifically, not just "a user."
 
-**Developer tools.** If you spend your day in Claude Code or Cursor, Persona handles the communication style while Engram (if you run it) handles the facts. "Show code first" and "stop summarizing" are Persona's domain. "Always use explicit return types" and "we deploy to Vercel" are Engram's. Different tools for different problems.
+**Developer tools.** If you spend your day in Claude Code or Cursor, przm Voice handles the communication style while przm Memory (if you run it) handles the facts. "Show code first" and "stop summarizing" are Voice's domain. "Always use explicit return types" and "we deploy to Vercel" are Memory's. Different tools for different problems.
 
 **Shareable presets.** Soul files are just three markdown files. Copy them and you've got a portable personality. A "Business Analyst" preset could lean formal, thorough, and structured. A "Pair Programmer" preset could be terse, code-first, and opinionated. Swap the files, the agent's whole style changes. I'd love to build a marketplace for these down the road. Downloadable souls for different workflows.
 
 **Coaching and therapy bots.** An agent that matches its communication style to each person it works with. More formal with some, more casual with others, more patient when frustration spikes. The core principles around honesty and harm prevention are immutable and survive all personality evolution.
 
-## Pairs Well With: Engram
+## Pairs Well With: przm Memory (engram)
 
-If Persona is the personality, [Engram](https://github.com/OneNomad-LLC/engram-mcp) is the brain.
+If przm Voice is the personality, [przm Memory](https://github.com/OneNomad-LLC/engram-mcp) (technical handle: `engram`) is the brain.
 
-Persona handles *how* the agent talks to you. Engram handles *what* it remembers. They solve different problems and work best together.
+przm Voice handles *how* the agent talks to you. przm Memory handles *what* it remembers. They solve different problems and work best together.
 
-Engram learns that you prefer TypeScript over Python. Persona learns that you want short answers with code first. Engram stores the fact that you got laid off last month. Persona picks up on the emotional context around that and knows to be thoughtful about how it comes up.
+przm Memory learns that you prefer TypeScript over Python. przm Voice learns that you want short answers with code first. Memory stores the fact that you got laid off last month. Voice picks up on the emotional context around that and knows to be thoughtful about how it comes up.
 
 When both MCP servers are running, they coordinate through three mechanisms:
 
-1. **Emotion-weighted memory importance.** Persona exposes `persona_state` with current emotional valence, arousal, and cognitive load. Engram calls this during ingestion — high-arousal negative emotions boost memory importance by up to 30%, so frustrated corrections get remembered more strongly than neutral facts.
+1. **Emotion-weighted memory importance.** Voice exposes `persona_state` with current emotional valence, arousal, and cognitive load. Memory calls this during ingestion — high-arousal negative emotions boost memory importance by up to 30%, so frustrated corrections get remembered more strongly than neutral facts.
 
-2. **Cognitive-load-gated search.** When Persona detects cognitive overload, Engram's search receives the load signal and returns only the top 3 high-importance memories instead of the full set. Less noise when you're already overwhelmed.
+2. **Cognitive-load-gated search.** When Voice detects cognitive overload, Memory's search receives the load signal and returns only the top 3 high-importance memories instead of the full set. Less noise when you're already overwhelmed.
 
-3. **Procedural bridge.** Persona's applied evolution proposals and Engram's learned procedural rules sync through a shared file at `~/.claude/procedural-bridge.json`. Persona proposals become Engram rules. Engram rules become Persona proposals with semantic conflict detection against existing soul files — catches antonym pairs and value contradictions, not just exact duplicates. The bridge auto-syncs during `persona_consolidate`, and bridge health is visible via `persona_stats`.
+3. **Procedural bridge.** Voice's applied evolution proposals and Memory's learned procedural rules sync through a shared file at `~/.claude/procedural-bridge.json`. Voice proposals become Memory rules. Memory rules become Voice proposals with semantic conflict detection against existing soul files — catches antonym pairs and value contradictions, not just exact duplicates. The bridge auto-syncs during `persona_consolidate`, and bridge health is visible via `persona_stats`.
 
-Persona works fine solo. But if you want an agent that feels like it genuinely knows you, not just how to talk to you but what you've told it, run both.
+przm Voice works fine solo. But if you want an agent that feels like it genuinely knows you, not just how to talk to you but what you've told it, run both.
 
 ## Cloud / multi-tenant mode
 
-Persona ships with a pluggable storage layer. The default backend is local files under `PERSONA_DATA_DIR` — that path is documented throughout this README and is unchanged. The Postgres backend exists for hosted multi-tenant deployments and is gated entirely behind environment variables.
+przm Voice ships with a pluggable storage layer. The default backend is local files under `PERSONA_DATA_DIR` — that path is documented throughout this README and is unchanged. The Postgres backend exists for hosted multi-tenant deployments and is gated entirely behind environment variables.
 
 | `STORAGE_BACKEND` | Required env | Where state lives |
 | --- | --- | --- |
@@ -503,7 +509,7 @@ Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres 
 ## Hosted (Pyre Cloud)
 
 The default install is fully local. If you run a Pyre server (yours or
-OneNomad's) you can point Persona at it with two commands.
+OneNomad's) you can point przm Voice at it with two commands.
 
 ```sh
 # 1. Install the package as usual.
