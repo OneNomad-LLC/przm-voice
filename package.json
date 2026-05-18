@@ -2,7 +2,7 @@
   "name": "@onenomad/persona-mcp",
   "version": "1.1.1",
   "mcpName": "io.github.onenomad-llc/persona-mcp",
-  "description": "Persona MCP server for Claude Code -- evolving personality, behavioral signals, style adaptations, and soul file management.",
+  "description": "przm Voice (persona) — adaptive personality MCP server for AI agents. Part of the przm AI reliability suite. Evolving personality from behavioral signals, style adaptations, and soul-file management.",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
@@ -32,10 +32,12 @@
     "migrate": "node dist/migrations/run.js",
     "smoke": "node dist/tests/smoke.js && node dist/tests/smoke-auth.js",
     "smoke:auth": "node dist/tests/smoke-auth.js",
-    "bench": "pnpm run bench:signal-classification && pnpm run bench:style-recall && pnpm run bench:context-budget",
+    "bench": "pnpm run bench:signal-classification && pnpm run bench:style-recall && pnpm run bench:context-budget && pnpm run bench:sycophancy-detection",
     "bench:signal-classification": "pnpm --filter @onenomad/persona-bench-signal-classification run bench",
     "bench:style-recall": "pnpm --filter @onenomad/persona-bench-style-recall run bench",
-    "bench:context-budget": "pnpm --filter @onenomad/persona-bench-context-budget run bench"
+    "bench:context-budget": "pnpm --filter @onenomad/persona-bench-context-budget run bench",
+    "bench:sycophancy-detection": "pnpm --filter @onenomad/persona-bench-sycophancy-detection run bench",
+    "smoke:sycophancy": "node dist/tests/sycophancy.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
