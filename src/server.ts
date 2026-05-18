@@ -162,8 +162,8 @@ const server = new McpServer(
       soulContext ? '' : '(Personality not yet formed.)',
       soulContext || '',
       '',
-      'Record user reactions immediately with persona_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
-      'After 5+ signals: run persona_synthesize.',
+      'Record user reactions immediately with voice_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
+      'After 5+ signals: run voice_synthesize.',
       'If engram available: memory = WHAT, persona = HOW.',
     ].filter(Boolean).join('\n'),
   }
@@ -174,7 +174,7 @@ const server = new McpServer(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_context',
+  'voice_context',
   {
     title: 'Get Context',
     description: 'Full personality context: soul files + adaptations + brain state. Pass adaptationsOnly=true for just the adaptive directives. Pass size to control verbosity — \'minimal\' (~400 tokens, just core principles + role) for tight context budgets, \'standard\' (default, ~1-2K tokens) for routine chat, \'full\' (~3-16K tokens) when you need accumulated journal notes too.',
@@ -215,7 +215,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_state',
+  'voice_state',
   {
     title: 'Emotional State',
     description: 'Lightweight valence/arousal/cognitive-load snapshot. Pass values to memory_ingest and memory_search.',
@@ -271,7 +271,7 @@ const VALID_SIGNALS: SignalType[] = [
 type BigFiveAxis = 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism';
 
 // Big Five signal types that directly nudge trait state. Outside this
-// set, persona_signal records the signal but only the text-based
+// set, voice_signal records the signal but only the text-based
 // inferTraitSignals path moves Big Five.
 const BIG_FIVE_SIGNAL_AXIS: Partial<Record<SignalType, { axis: BigFiveAxis; direction: 1 | -1 }>> = {
   extraversion_positive: { axis: 'extraversion', direction: 1 },
@@ -311,11 +311,11 @@ function applyBigFiveSignalNudge(
   return true;
 }
 
-// Recent user-message buffer for re_ask detection inside persona_signal.
+// Recent user-message buffer for re_ask detection inside voice_signal.
 const recentUserMessages: string[] = [];
 
 server.registerTool(
-  'persona_signal',
+  'voice_signal',
   {
     title: 'Record Signal',
     description: 'Record a user reaction. Two modes: (1) explicit — pass `type` and `content`; (2) auto-detect — pass `userMessage` and the regex catalog classifies zero or more signals. When both are supplied, `type` wins and detection is skipped.',
@@ -461,7 +461,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_profile',
+  'voice_profile',
   {
     title: 'View Profile',
     description: 'Behavioral profile: style preferences, satisfaction, topic patterns, Big Five traits, and explicit feedback (recent + pinned).',
@@ -505,7 +505,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_feedback_pin',
+  'voice_feedback_pin',
   {
     title: 'Pin Feedback',
     description: 'Pin a piece of explicit feedback so it persists beyond the 10-entry recentFeedback cap. If feedbackContent matches an entry in recentFeedback, it moves; otherwise the content is appended as a fresh pinned entry.',
@@ -542,10 +542,10 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_feedback_unpin',
+  'voice_feedback_unpin',
   {
     title: 'Unpin Feedback',
-    description: 'Remove an entry from pinnedFeedback by index. Use persona_profile with format=json to see indices.',
+    description: 'Remove an entry from pinnedFeedback by index. Use voice_profile with format=json to see indices.',
     inputSchema: z.object({
       index: z.number().int().nonnegative().describe('Index into pinnedFeedback.'),
     }),
@@ -564,7 +564,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_stats',
+  'voice_stats',
   {
     title: 'Stats',
     description: 'System overview: signals, profile, proposals, soul files, brain state, bridge status.',
@@ -665,7 +665,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_proposals',
+  'voice_proposals',
   {
     title: 'List Proposals',
     description: 'Evolution proposals: suggested personality changes from behavioral evidence.',
@@ -685,7 +685,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_apply',
+  'voice_apply',
   {
     title: 'Apply Proposal',
     description: 'Apply a pending evolution proposal.',
@@ -700,7 +700,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_reject',
+  'voice_reject',
   {
     title: 'Reject Proposal',
     description: 'Reject a pending evolution proposal.',
@@ -715,7 +715,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_evolve',
+  'voice_evolve',
   {
     title: 'Generate Proposals',
     description: 'Manually trigger evolution proposal generation from accumulated signals.',
@@ -742,7 +742,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_read',
+  'voice_read',
   {
     title: 'Read Soul File',
     description: 'Read a soul file (personality, style, or skill).',
@@ -757,7 +757,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_edit',
+  'voice_edit',
   {
     title: 'Edit Soul File',
     description: 'Overwrite a soul file directly.',
@@ -773,7 +773,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_init',
+  'voice_init',
   {
     title: 'Initialize',
     description: 'Reset soul files to defaults. Won\'t overwrite existing.',
@@ -795,7 +795,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_soul_presets_list',
+  'voice_soul_presets_list',
   {
     title: 'List Soul Presets',
     description: 'List bundled SOUL.md presets (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). Apply one to write its content into PERSONALITY.md.',
@@ -814,7 +814,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_soul_preset_read',
+  'voice_soul_preset_read',
   {
     title: 'Read Soul Preset',
     description: 'Read a bundled SOUL.md preset without applying it.',
@@ -829,7 +829,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_soul_preset_apply',
+  'voice_soul_preset_apply',
   {
     title: 'Apply Soul Preset',
     description: "Write a bundled SOUL.md preset into the user's PERSONALITY.md. Replaces existing personality content. STYLE.md and SKILL.md are not touched.",
@@ -849,7 +849,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_role_list',
+  'voice_role_list',
   {
     title: 'List Roles',
     description: 'List bundled and user-defined roles. Roles are domain overlays (developer, designer, pm…) layered on top of the soul at prompt-build time.',
@@ -871,10 +871,10 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_role_set',
+  'voice_role_set',
   {
     title: 'Set Active Role',
-    description: 'Activate a role globally. Per-call overrides via persona_context({ role }) bypass this. Pass null to clear.',
+    description: 'Activate a role globally. Per-call overrides via voice_context({ role }) bypass this. Pass null to clear.',
     inputSchema: z.object({
       name: z.string().describe('Role name (e.g. "developer"). Must exist in bundled roles or dataDir/roles/<name>/ROLE.md.'),
     }),
@@ -888,10 +888,10 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_role_clear',
+  'voice_role_clear',
   {
     title: 'Clear Active Role',
-    description: 'Clear the active role. Subsequent persona_context calls with no role override will return soul-only context.',
+    description: 'Clear the active role. Subsequent voice_context calls with no role override will return soul-only context.',
     inputSchema: z.object({}),
   },
   async () => {
@@ -901,7 +901,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_role_read',
+  'voice_role_read',
   {
     title: 'Read Role',
     description: 'Read a role file. Returns the user override if present in dataDir/roles/<name>/ROLE.md, else the bundled default.',
@@ -916,7 +916,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_role_edit',
+  'voice_role_edit',
   {
     title: 'Edit Role',
     description: 'Override or create a custom role at dataDir/roles/<name>/ROLE.md. User overrides shadow bundled defaults.',
@@ -936,7 +936,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_journal_read',
+  'voice_journal_read',
   {
     title: 'Read Journal',
     description: "Read Persona's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
@@ -957,7 +957,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_journal_clear',
+  'voice_journal_clear',
   {
     title: 'Clear Journal',
     description: "Wipe Persona's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
@@ -976,7 +976,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_synthesize',
+  'voice_synthesize',
   {
     title: 'Synthesize',
     description: 'Analyze user messages, extract communication traits, update soul files, and process through brain systems.',
@@ -1022,7 +1022,7 @@ server.registerTool(
 );
 
 server.registerTool(
-  'persona_analyze',
+  'voice_analyze',
   {
     title: 'Analyze Style',
     description: 'Analyze communication style without updating soul files. Emotional tone, Big Five, style vector.',
@@ -1077,7 +1077,7 @@ server.registerTool(
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
-  'persona_consolidate',
+  'voice_consolidate',
   {
     title: 'Consolidate',
     description: 'Between-session consolidation: decay emotions, detect drift, check contradictions, promote patterns, sync Engram bridge.',

@@ -6,7 +6,11 @@ import { DEFAULT_CONFIG } from './types.js';
 export function loadConfig(overrides?: Partial<PersonaConfig>): PersonaConfig {
   return {
     ...DEFAULT_CONFIG,
-    dataDir: process.env.PERSONA_DATA_DIR ?? join(homedir(), '.claude', 'persona'),
+    // PRZM_VOICE_DATA_DIR is canonical; PERSONA_DATA_DIR is legacy fallback.
+    dataDir:
+      process.env.PRZM_VOICE_DATA_DIR ??
+      process.env.PERSONA_DATA_DIR ??
+      join(homedir(), '.claude', 'przm-voice'),
     ...overrides,
   };
 }

@@ -6,7 +6,7 @@ import { getStorage } from './storage/index.js';
  *
  * When evolution.applyProposal runs, it appends here instead of touching the
  * soul/ directory. That preserves a clean ownership boundary:
- *   soul/  → user territory (persona_edit and direct file writes only)
+ *   soul/  → user territory (voice_edit and direct file writes only)
  *   journal/ → Persona territory (auto-learned, freely rewritten/cleared)
  *
  * Both layers are surfaced together in buildSoulContext so the prompt sees

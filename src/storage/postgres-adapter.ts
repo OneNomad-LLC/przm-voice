@@ -207,7 +207,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
 
   private async loadState(client: PoolClient): Promise<void> {
     const res = await client.query(
-      'SELECT profile, trait_state, proposals, active_role FROM persona_state WHERE tenant_id = $1',
+      'SELECT profile, trait_state, proposals, active_role FROM voice_state WHERE tenant_id = $1',
       [this.tenantId],
     );
     if (res.rows.length === 0) {
@@ -228,7 +228,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
 
   private async loadSignals(client: PoolClient): Promise<void> {
     const res = await client.query(
-      'SELECT payload FROM persona_signals WHERE tenant_id = $1 ORDER BY created_at ASC, id ASC',
+      'SELECT payload FROM voice_signals WHERE tenant_id = $1 ORDER BY created_at ASC, id ASC',
       [this.tenantId],
     );
     this.cache.signals = res.rows.map((r) => r.payload as BehavioralSignal);
@@ -305,7 +305,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
     const activeRole = this.cache.activeRole;
     this.enqueue(async () => {
       await this.pool.query(
-        `INSERT INTO persona_state (tenant_id, profile, trait_state, proposals, active_role, updated_at)
+        `INSERT INTO voice_state (tenant_id, profile, trait_state, proposals, active_role, updated_at)
          VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5, now())
          ON CONFLICT (tenant_id) DO UPDATE SET
            profile = EXCLUDED.profile,
@@ -378,16 +378,16 @@ export class PostgresStorageAdapter implements StorageAdapter {
     const tenantId = this.tenantId;
     this.enqueue(async () => {
       await this.pool.query(
-        'INSERT INTO persona_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)',
+        'INSERT INTO voice_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)',
         [tenantId, signal.type, JSON.stringify(signal)],
       );
       // FIFO trim — delete oldest beyond cap. id is monotonic so we
       // can ORDER BY id DESC to find the cutoff cheaply.
       await this.pool.query(
-        `DELETE FROM persona_signals
+        `DELETE FROM voice_signals
          WHERE tenant_id = $1
            AND id NOT IN (
-             SELECT id FROM persona_signals
+             SELECT id FROM voice_signals
              WHERE tenant_id = $1
              ORDER BY id DESC
              LIMIT $2
@@ -405,7 +405,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
     this.cache.signals = [];
     const tenantId = this.tenantId;
     this.enqueue(async () => {
-      await this.pool.query('DELETE FROM persona_signals WHERE tenant_id = $1', [tenantId]);
+      await this.pool.query('DELETE FROM voice_signals WHERE tenant_id = $1', [tenantId]);
     });
   }
 

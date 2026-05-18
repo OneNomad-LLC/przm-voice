@@ -43,7 +43,7 @@ export function assertSafeRoleName(name: unknown): asserts name is string {
  * at dataDir/roles/<name>/ROLE.md, postgres mode keeps them per-tenant.
  *
  * Active role state lives in adapter.getActiveRole(); per-conversation
- * override is the caller's responsibility (pass roleName into persona_context).
+ * override is the caller's responsibility (pass roleName into voice_context).
  */
 
 // Resolve the bundled presets dir relative to the compiled module. Walks up
