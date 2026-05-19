@@ -5,10 +5,9 @@
 # przm Voice <sub>(persona)</sub>
 
 [![przm: Voice](https://img.shields.io/badge/przm-Voice-F59520?style=flat-square&labelColor=1a1a1a)](https://przm.sh)
-[![npm](https://img.shields.io/badge/npm-%40onenomad%2Fpersona--mcp-cb3837?style=flat-square&labelColor=1a1a1a)](https://www.npmjs.com/package/@onenomad/persona-mcp)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square&labelColor=1a1a1a)](LICENSE)
 
-The voice surface of [przm](https://przm.sh), OneNomad's AI reliability suite. Technical handle: `persona`. npm: `@onenomad/persona-mcp`. GitHub: `OneNomad-LLC/persona-mcp`.
+The voice surface of [przm](https://przm.sh), OneNomad's AI reliability suite. Project codename: `persona`. The repo (`OneNomad-LLC/persona-mcp`) and npm package are renaming to `przm-voice` alongside the v1.0 publish; until then, install from source.
 
 Every AI you talk to starts with the same personality. Same "I'd be happy to help!" opener. Same trailing summaries. It doesn't learn that you want code before explanation, or that you're a senior dev who already gets the basics. You correct it, it apologizes, and then next conversation it does the same thing all over again.
 
@@ -186,6 +185,8 @@ przm Voice is an MCP server. It works with anything that supports the Model Cont
 - Any other MCP-compatible client
 
 ## Installation
+
+> **Heads up — npm publish pending.** The package is renaming from `@onenomad/persona-mcp` to `@onenomad/przm-voice` at the same time it first publishes (v1.0). Neither name is on npm yet. Until v1.0 lands, install from source (see [Source](#source) below). The `npx @onenomad/persona-mcp` commands shown in this section will work after the v1.0 publish; nothing else changes about the install steps.
 
 ### Claude Code
 
