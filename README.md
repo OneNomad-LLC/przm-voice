@@ -7,7 +7,7 @@
 [![przm: Voice](https://img.shields.io/badge/przm-Voice-F59520?style=flat-square&labelColor=1a1a1a)](https://przm.sh)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square&labelColor=1a1a1a)](LICENSE)
 
-The voice surface of [przm](https://przm.sh), OneNomad's AI reliability suite. Project codename: `persona`. The repo (`OneNomad-LLC/persona-mcp`) and npm package are renaming to `przm-voice` alongside the v1.0 publish; until then, install from source.
+The voice surface of [przm](https://przm.sh), OneNomad's AI reliability suite. Project codename: `persona`. The GitHub repo is now [`OneNomad-LLC/przm-voice`](https://github.com/OneNomad-LLC/przm-voice) (old URLs redirect); the npm package publishes as `@onenomad/przm-voice` at v1.0. Until then, install from source.
 
 Every AI you talk to starts with the same personality. Same "I'd be happy to help!" opener. Same trailing summaries. It doesn't learn that you want code before explanation, or that you're a senior dev who already gets the basics. You correct it, it apologizes, and then next conversation it does the same thing all over again.
 
@@ -186,12 +186,12 @@ przm Voice is an MCP server. It works with anything that supports the Model Cont
 
 ## Installation
 
-> **Heads up — npm publish pending.** The package is renaming from `@onenomad/persona-mcp` to `@onenomad/przm-voice` at the same time it first publishes (v1.0). Neither name is on npm yet. Until v1.0 lands, install from source (see [Source](#source) below). The `npx @onenomad/persona-mcp` commands shown in this section will work after the v1.0 publish; nothing else changes about the install steps.
+> **Heads up — `@onenomad/przm-voice` publishes at v1.0.** The package isn't on npm yet. Until v1.0 lands, install from source (see [Source](#source) below). The `npx @onenomad/przm-voice` commands shown in this section will work after the v1.0 publish; nothing else changes about the install steps.
 
 ### Claude Code
 
 ```bash
-claude mcp add persona -- npx @onenomad/persona-mcp
+claude mcp add persona -- npx @onenomad/przm-voice
 ```
 
 ### Claude Desktop
@@ -203,7 +203,7 @@ Add to your Claude Desktop config file. On macOS it's at `~/Library/Application 
   "mcpServers": {
     "persona": {
       "command": "npx",
-      "args": ["@onenomad/persona-mcp"]
+      "args": ["@onenomad/przm-voice"]
     }
   }
 }
@@ -220,7 +220,7 @@ Add to your client's MCP config:
   "mcpServers": {
     "persona": {
       "command": "npx",
-      "args": ["@onenomad/persona-mcp"]
+      "args": ["@onenomad/przm-voice"]
     }
   }
 }
@@ -229,8 +229,8 @@ Add to your client's MCP config:
 ### From Source
 
 ```bash
-git clone https://github.com/OneNomad-LLC/persona-mcp.git
-cd persona-mcp
+git clone https://github.com/OneNomad-LLC/przm-voice.git
+cd przm-voice
 pnpm install
 pnpm run build
 ```
@@ -448,7 +448,7 @@ Everything sits at `~/.claude/persona/`. Soul files are plain markdown. Signals 
 
 ## Pairs Well With: przm Memory (engram)
 
-If przm Voice is the personality, [przm Memory](https://github.com/OneNomad-LLC/engram-mcp) (technical handle: `engram`) is the brain.
+If przm Voice is the personality, [przm Memory](https://github.com/OneNomad-LLC/przm-memory) (technical handle: `engram`) is the brain.
 
 przm Voice handles *how* the agent talks to you. przm Memory handles *what* it remembers. They solve different problems and work best together.
 
@@ -514,10 +514,10 @@ OneNomad's) you can point przm Voice at it with two commands.
 
 ```sh
 # 1. Install the package as usual.
-pnpm add -g @onenomad/persona-mcp  # or `npm i -g`, `npx`, etc.
+pnpm add -g @onenomad/przm-voice  # or `npm i -g`, `npx`, etc.
 
 # 2. Log in. The URL is supplied — there is no default.
-persona-mcp login https://pyre.sh
+przm-voice login https://pyre.sh
 # → Visit https://.../dashboard/devices/PYRE-XXXX-XXXX to authorize.
 #   Code: PYRE-XXXX-XXXX
 ```
@@ -533,9 +533,9 @@ changes.
 Three ways to supply the URL to `login`, in priority order:
 
 ```sh
-persona-mcp login https://pyre.sh         # positional
-persona-mcp login --server https://pyre.sh # flag
-PYRE_API_URL=https://pyre.sh persona-mcp login  # env
+przm-voice login https://pyre.sh         # positional
+przm-voice login --server https://pyre.sh # flag
+PYRE_API_URL=https://pyre.sh przm-voice login  # env
 ```
 
 If none is provided, login exits with an error. There is no hardcoded
@@ -544,7 +544,7 @@ default.
 ### Force local mode (CI, headless, sandboxes)
 
 ```sh
-STORAGE_BACKEND=file persona-mcp        # always uses ~/.claude/persona
+STORAGE_BACKEND=file przm-voice        # always uses ~/.claude/persona
 ```
 
 `STORAGE_BACKEND=file` wins over any credentials file on disk.
@@ -555,8 +555,8 @@ If a credentials file exists but CI needs a different key or URL,
 either field can be overridden individually:
 
 ```sh
-PERSONA_API_KEY=sk_pyre_ci_xxx persona-mcp
-PERSONA_API_URL=https://staging.pyre.sh persona-mcp
+PERSONA_API_KEY=sk_pyre_ci_xxx przm-voice
+PERSONA_API_URL=https://staging.pyre.sh przm-voice
 ```
 
 The env value wins over the matching field in `credentials.json`.
@@ -564,7 +564,7 @@ The env value wins over the matching field in `credentials.json`.
 ### Log out
 
 ```sh
-persona-mcp logout      # removes ~/.pyre/credentials.json, idempotent
+przm-voice logout      # removes ~/.pyre/credentials.json, idempotent
 ```
 
 ### Credentials file path
@@ -575,20 +575,20 @@ persona-mcp logout      # removes ~/.pyre/credentials.json, idempotent
 
 ### Disable cloud auto-routing
 
-By default, if `~/.pyre/credentials.json` exists, persona-mcp routes
-storage to PYRE Cloud. This is convenient after `persona-mcp login`
+By default, if `~/.pyre/credentials.json` exists, przm-voice routes
+storage to PYRE Cloud. This is convenient after `przm-voice login`
 but surprising in benchmarks, CI, and local-dev runs where you want
 to guarantee no traffic hits the wire. Set `PERSONA_NO_AUTO_CLOUD=1`
 to skip the credentials-file check and fall through to the local
 file adapter even when credentials exist.
 
 ```sh
-PERSONA_NO_AUTO_CLOUD=1 persona-mcp        # ignore credentials.json
-STORAGE_BACKEND=file persona-mcp           # equivalent, more explicit
+PERSONA_NO_AUTO_CLOUD=1 przm-voice        # ignore credentials.json
+STORAGE_BACKEND=file przm-voice           # equivalent, more explicit
 ```
 
 Whichever storage backend resolves, the server writes one line to
-stderr at startup naming the decision (`persona-mcp: storage=cloud
+stderr at startup naming the decision (`przm-voice: storage=cloud
 (auto-routed via ~/.pyre/credentials.json) · …`) so the routing is
 never silent. If you see cloud routing when you expected local, that
 line tells you why.
