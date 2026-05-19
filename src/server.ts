@@ -18,6 +18,7 @@ import { detectEmotionalTone, emotionalValence, emotionalArousal, detectDyads, l
 import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain, blendStyleVectors } from './traits.js';
 import { updateCognitiveLoad, getVerbosityMultiplier } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
+import { detectSycophancyInAssistant } from './sycophancy.js';
 import type { SignalType, SessionState, BigFiveTraits, TraitState } from './types.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
 
@@ -154,10 +155,10 @@ function buildLayeredContext(
 const soulContext = buildLayeredContext();
 
 const server = new McpServer(
-  { name: 'persona', version: '2.4.0' },
+  { name: 'przm-voice', version: '1.0.0' },
   {
     instructions: [
-      '# Persona',
+      '# przm Voice',
       'Adaptive personality. Honest, not agreeable. Style emerges from interactions.',
       soulContext ? '' : '(Personality not yet formed.)',
       soulContext || '',
@@ -183,7 +184,7 @@ server.registerTool(
       userMessage: z.string().optional().describe('Process through brain systems first.'),
       adaptationsOnly: z.boolean().optional().describe('If true, return only adaptations (not soul files).'),
       role: z.string().optional().describe('Per-call role override (e.g. "developer"). Falls back to active role then no role.'),
-      size: z.enum(['minimal', 'standard', 'full']).optional().describe('Context verbosity. minimal=~400 tokens (personality + role only); standard=~1-2K tokens (all soul files, no journal) [default]; full=~3-16K tokens (soul + journal-derived "learned" notes). Pyre\'s Context Budget Engine sets this based on the persona slot\'s allocated budget.'),
+      size: z.enum(['minimal', 'standard', 'full']).optional().describe('Context verbosity. minimal=~400 tokens (personality + role only); standard=~1-2K tokens (all soul files, no journal) [default]; full=~3-16K tokens (soul + journal-derived "learned" notes). przm\'s Context Budget Engine sets this based on the personality slot\'s allocated budget.'),
     }),
   },
   async ({ category, userMessage, adaptationsOnly, role, size }) => {
@@ -247,6 +248,29 @@ server.registerTool(
       sentiment,
       cognitiveLoad: cognitiveLoadLevel,
       domainContext: traitState.domainTechnicalRatio > 0.5 ? 'technical' : traitState.domainTechnicalRatio > 0.2 ? 'mixed' : 'casual',
+    });
+  }
+);
+
+server.registerTool(
+  'voice_detect_sycophancy',
+  {
+    title: 'Detect Sycophancy in Assistant Output',
+    description: 'Scan assistant text for known sycophantic patterns: flattery openers ("great question," "absolutely"), walk-backs without new evidence, position flips (pre-pushback X → post-pushback ¬X), and agreement cascades (N consecutive turns lacking disagreement). Rules-based detection — no LLM in the loop (a model evaluating its own sycophancy is contaminated by the same failure mode). Returns all firing signals sorted by confidence descending; one turn may fire multiple signals (e.g. flattery + walk-back).',
+    inputSchema: z.object({
+      currentAssistantText: z.string().describe('The just-produced assistant turn. Required.'),
+      priorAssistantText: z.string().optional().describe('The prior assistant turn. Required for walk-back and position-flip detection.'),
+      intermediateUserText: z.string().optional().describe('The user message between prior and current assistant turns. Used to gate walk-backs (presence of user-supplied evidence suppresses flattery and walk-back signals as grounded acknowledgment).'),
+      recentAssistantTurns: z.array(z.string()).optional().describe('Full assistant-turn history (oldest → newest, including current) for cascade detection.'),
+      cascadeThreshold: z.number().optional().describe('Number of consecutive agreement-without-disagreement turns required to fire the cascade signal. Default: 4.'),
+    }),
+  },
+  async (args) => {
+    const signals = detectSycophancyInAssistant(args);
+    return json({
+      signals,
+      count: signals.length,
+      hasSycophancy: signals.length > 0,
     });
   }
 );
@@ -932,14 +956,14 @@ server.registerTool(
 );
 
 // ─────────────────────────────────────────────────────────────────────
-// JOURNAL (Persona's auto-derived notes — separate from user-edited soul)
+// JOURNAL (przm Voice's auto-derived notes — separate from user-edited soul)
 // ─────────────────────────────────────────────────────────────────────
 
 server.registerTool(
   'voice_journal_read',
   {
     title: 'Read Journal',
-    description: "Read Persona's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
+    description: "Read przm Voice's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
     inputSchema: z.object({
       file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file. Omit to read all three.'),
     }),
@@ -960,7 +984,7 @@ server.registerTool(
   'voice_journal_clear',
   {
     title: 'Clear Journal',
-    description: "Wipe Persona's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
+    description: "Wipe przm Voice's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
     inputSchema: z.object({
       file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file to clear. Omit to clear all three.'),
     }),
@@ -1193,7 +1217,7 @@ function checkAutoConsolidate(): void {
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Persona MCP server v2.1.0 running on stdio');
+  console.error('przm Voice MCP server v1.0.0 running on stdio');
   console.error(`Data dir: ${config.dataDir}`);
   console.error(`Soul files: ${SOUL_FILE_NAMES.map(f => readSoulFile(config, f) ? f : `${f} (empty)`).join(', ')}`);
 

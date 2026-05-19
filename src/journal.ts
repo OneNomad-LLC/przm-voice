@@ -2,12 +2,12 @@ import type { JournalFiles, PersonaConfig, SoulFiles } from './types.js';
 import { getStorage } from './storage/index.js';
 
 /**
- * Journal — Persona's auto-derived notes, kept separate from user-edited soul.
+ * Journal — przm Voice's auto-derived notes, kept separate from user-edited soul.
  *
  * When evolution.applyProposal runs, it appends here instead of touching the
  * soul/ directory. That preserves a clean ownership boundary:
  *   soul/  → user territory (voice_edit and direct file writes only)
- *   journal/ → Persona territory (auto-learned, freely rewritten/cleared)
+ *   journal/ → przm Voice territory (auto-learned, freely rewritten/cleared)
  *
  * Both layers are surfaced together in buildSoulContext so the prompt sees
  * a unified view, but the user can clear the journal at any time without

@@ -114,7 +114,7 @@ export function applyProposal(config, proposalId) {
     if (proposal.status !== 'pending')
         return { success: false, message: `Proposal is already ${proposal.status}.` };
     // Apply to the journal namespace, never to the user-edited soul. Soul/
-    // is user territory — Persona only writes here. buildSoulContext layers
+    // is user territory — przm Voice only writes here. buildSoulContext layers
     // both at prompt-build time, so behavior is unchanged from the caller's
     // perspective. The user can clear the journal without losing soul edits.
     if (proposal.action === 'add') {

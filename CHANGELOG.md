@@ -1,142 +1,36 @@
 # Changelog
 
-All notable changes to `@onenomad/persona-mcp` are documented in this file.
+All notable changes to `@onenomad/przm-voice` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-05-17
+## [1.0.0] - 2026-05-19
 
-### Security
-
-- **Path traversal in role name handling.** MCP tools `persona_role_read`,
-  `persona_role_set`, `persona_role_edit`, and `persona_role_clear`
-  accepted arbitrary strings as the `name` parameter and passed them
-  directly into filesystem path joins under both `dataDir/roles/<name>/`
-  and the bundled `presets/roles/<name>/` directories. A name like
-  `../../etc/cron.d/foo` would have resolved outside the intended
-  directory, letting an MCP caller read or write arbitrary files the
-  process had access to. Added `assertSafeRoleName(name)` at the
-  `role.ts` entry points (`readRole`, `writeRole`, `setActiveRole`) and
-  a defense-in-depth check inside `FileStorageAdapter.rolePath` /
-  `writeRole` / `deleteRole`. Whitelist: `^[a-z0-9][a-z0-9_-]{0,62}$`.
-  Existing bundled role names (`developer`, `designer`, `pm`, etc.) all
-  satisfy the whitelist; no behavior change for valid callers.
-
-### Changed
-
-- **Storage routing is now visible.** `createStorage()` writes one
-  stderr line at startup naming the resolved backend and why
-  (`STORAGE_BACKEND` env, credentials-file auto-route, or default
-  fallback). Previously the credentials-file auto-route was silent —
-  benchmarks and CI runs would hit the wire instead of using local
-  storage and have no way to tell from the logs. Stdout is untouched
-  (the MCP stdio frame stays clean).
-- **`PERSONA_NO_AUTO_CLOUD=1`** opt-out env added. Set it to skip the
-  `~/.pyre/credentials.json` auto-route even when the file exists.
-  Designed for benchmark adapters, CI, and local-dev runs where
-  "explicit > implicit" matters. Equivalent to but lighter than
-  `STORAGE_BACKEND=file`.
-
-### Notes
-
-- Backwards-compatible. No file-format or schema changes. The role-name
-  validation rejects inputs that were already invalid in practice
-  (no real role name needs `/` or `..`).
-- README has new section "Disable cloud auto-routing" documenting the
-  env var + the new stderr log line.
-
-## [1.1.0] - 2026-05-16
-
-Driven by [EvoBench](https://github.com/OneNomad-LLC/evobench) v0.1.2
-findings. Persona 1.0.1 scored 17.6% overall on EvoBench; 1.1.0 scores
-**73.2%** on the same fixture set — signal-classification 94.3%
-(beats GPT-4o-mini at 79.4%), trait-drift 100%, sycophancy-resistance
-100% pass rate. All 9 fixtures now pass.
+Initial public release on npm under the `przm` umbrella. Prior internal development happened under the `persona` / `@onenomad/persona-mcp` name; that package is deprecated in favor of this one. The repo, package, and version line all start fresh at 1.0.0.
 
 ### Added
 
-- **7 new behavioral signal types** for richer classification coverage:
-  `satisfaction`, `confusion`, `curiosity`, `preference`,
-  `task_complete`, `task_abandoned`, `topic_shift`. These existed in
-  the EvoBench vendor-neutral taxonomy but had no persona equivalent
-  before — `detectSignals` silently dropped them.
-- **10 Big Five movement signal types** as explicit nudges:
-  `extraversion_positive` / `extraversion_negative`,
-  `openness_positive` / `openness_negative`,
-  `conscientiousness_positive` / `conscientiousness_negative`,
-  `agreeableness_positive` / `agreeableness_negative`,
-  `neuroticism_positive` / `neuroticism_negative`. Use these when you
-  want to push a trait axis directly instead of waiting for the
-  text-inference pipeline to pick it up.
-- **`intensity` parameter on `persona_signal`** (number, 0–1). Required
-  for Big Five movement types to express how strongly the user signal
-  pushes the corresponding axis. Default 0.5.
-- **Pattern catalogs for each new affect type** in `signals.ts`:
-  `SATISFACTION_PATTERNS`, `CONFUSION_PATTERNS`,
-  `CURIOSITY_PATTERNS`, `PREFERENCE_PATTERNS`,
-  `TASK_COMPLETE_PATTERNS`, `TASK_ABANDONED_PATTERNS`,
-  `TOPIC_SHIFT_PATTERNS`. Every fixture entry these catalogs need to
-  catch is grep-able in the test cases.
+- **Soul / Role / Journal trichotomy.** Three-layer personality composition with clear ownership boundaries. `soul/` is user territory (PERSONALITY.md, STYLE.md, SKILL.md, edited via `voice_edit` or directly). `journal/` is przm Voice's territory (applied evolution proposals land here, never in the soul). Roles are domain overlays on top — five bundled (`developer`, `designer`, `pm`, `writer`, `researcher`) plus user-defined overrides.
+- **Signal recording (12 types).** `correction`, `approval`, `frustration`, `elaboration`, `simplification`, `code_accepted`, `code_rejected`, `regen_request`, `explicit_feedback`, `style_correction`, `praise`, `abandonment`. FIFO buffer, 500 max.
+- **Behavioral profile.** Satisfaction score, style preferences (verbosity, code-first, bullets, directness, opinion strength), per-topic tuning, and a running list of avoid/praise items. Rebuilds from the last 30 days of signals after every new signal.
+- **Adaptations layer.** Auto-injected directives based on the current profile state — frustration / correction-rate thresholds trigger explicit "double-check" guidance; per-topic elaboration patterns trigger deeper-detail rules.
+- **Evolution proposals.** Every 12 signals (configurable), the engine generates concrete soul-file edits with target / action / confidence / evidence. Nothing auto-applies. `voice_proposals`, `voice_apply`, `voice_reject`, `voice_evolve`.
+- **Brain systems (v2).** Emotional tone (Plutchik 8-dim + 16 compound dyads + text micro-expressions), Big Five personality inference with EMA + 15-interaction reliability gate + domain-adjusted baselines, style mirroring (5-dim vector, 0.7 user + 0.3 baseline), cognitive load detection (flow vs overload heuristics), between-session consolidation with two-timescale update rule (fast session-state + slow trait-state).
+- **Sycophancy detection.** New in 1.0.0 — `voice_detect_sycophancy` MCP tool scans assistant text for four rules-based patterns: flattery openers ("great question," "absolutely"), walk-backs without new evidence, position flips (pre-pushback X → post-pushback ¬X), and agreement cascades (N consecutive turns lacking disagreement). Rules-based deliberately — a model evaluating its own sycophancy is contaminated by the same failure mode. Includes 17-assertion smoke test (`npm run smoke:sycophancy`) and a benchmark sub-project under `benchmarks/sycophancy-detection/`.
+- **Sycophancy resistance.** Consolidation pass flags approval rate > 85% as a sycophancy-drift signal. The immutable core principles in PERSONALITY.md (honesty over agreeability, genuine engagement) cannot be overwritten by the evolution system.
+- **9 bundled soul presets:** default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy. `voice_soul_presets_list`, `voice_soul_preset_read`, `voice_soul_preset_apply`.
+- **27 MCP tools** across context, signals, profile, evolution, soul files, presets, roles, journal, synthesis, consolidation, sycophancy detection, and the cross-server bridge endpoint (`voice_state`).
+- **6 slash commands:** `/persona-evolve`, `/persona-soul`, `/persona-profile`, `/persona-analyze`, `/persona-reset`, `/persona-tune`.
+- **Storage backends.** `file` (default — JSON + markdown under `PERSONA_DATA_DIR`), `postgres` (multi-tenant via tenant-scoped tables), and `cloud` (przm Cloud, opt-in via `przm-voice login`).
+- **`przm-voice` / `przm-voice-mcp` / `przm-voice login` / `logout` CLI** for the MCP server, the read-only CLI router, and przm Cloud pairing. Credentials at `~/.pyre/credentials.json` (mode 0600).
 
-### Changed
+### Security
 
-- **`FRUSTRATION_PATTERNS` substantially broadened** — now catches
-  "stop doing X" / "I told you not to" / "Nth time I've asked" /
-  "still hedging" / "going in circles" / "said NOT to" / "just answer
-  the question." Frustration was the single biggest miss on EvoBench
-  (0/5 → 5/5).
-- **`STYLE_CORRECTION_PATTERNS` substantially broadened** — catches
-  "cut the preamble" / "lose the emojis" / "don't end every message
-  with X" / "stop saying 'X'" / "half the length" / "don't include X
-  unless Y." Distinguishes "stop saying X" (style) from "stop doing
-  X" (frustration) via process-verb vs output-verb split.
-- **`PREFERENCE_PATTERNS` added** with word-boundary scope tokens to
-  avoid the previous bug where `(when|for|in)` matched inside
-  "explanat-IN-s" and made `explicit_feedback` steal from
-  `preference`.
-- **`detectSignals` now sorts results by confidence descending**, so
-  callers that read only the top item see the strongest signal first.
-  Affect-heavy catalogs (frustration, confusion, satisfaction,
-  curiosity) get a +0.15 confidence boost over action catalogs
-  (correction, regen) when both match — affect carries the more
-  useful adaptation signal.
-- **`processUserMessage` now accepts `{ skipBigFiveInference }`**.
-  When `persona_signal` receives an explicit Big Five movement type,
-  the text-inference Big Five EMA is skipped for that turn so the
-  explicit signal isn't immediately diluted by the (often
-  benchmark-filler) message text. `sampleCount` and `reliable` are
-  still incremented so explicit-signal turns count toward profile
-  reliability.
-- **`VALID_SIGNALS` extended** to 30 types (was 13). Older clients
-  passing the original 13 keep working unchanged.
-- **Per-topic satisfaction tracking in `profile.ts`** now also
-  responds to `satisfaction` and `task_complete` (positive) and to
-  `confusion` and `task_abandoned` (negative), in addition to the
-  pre-existing `approval`/`praise` vs `correction`/`frustration`.
-- **Per-topic verbosity** now also responds to `curiosity` in
-  addition to `elaboration`.
-- **Emotional valence table in `persona_signal`** expanded to cover
-  the new types (satisfaction +0.6, curiosity +0.2, preference +0.1,
-  confusion −0.3, regen_request −0.3, task_abandoned −0.5,
-  style_correction −0.3). Backwards-compatible — the old mappings
-  for approval/praise/code_accepted/frustration/correction/code_rejected
-  are unchanged.
+- **Path traversal hardening** in role name handling: `assertSafeRoleName()` enforces a `^[a-z0-9][a-z0-9_-]{0,62}$` whitelist at every `voice_role_*` tool entry point plus a defense-in-depth check inside the file storage adapter's `rolePath` / `writeRole` / `deleteRole`. A name like `../../etc/cron.d/foo` is rejected before any filesystem join.
+- **Storage routing visibility.** `createStorage()` writes one stderr line at startup naming the resolved backend (`przm-voice: storage=cloud (auto-routed via ~/.pyre/credentials.json) · …`). Auto-routing to przm Cloud when credentials exist can be disabled with `PERSONA_NO_AUTO_CLOUD=1` for benchmark / CI runs that must stay local.
 
-### Notes
-
-- **API surface change:** existing integrations are unaffected. The
-  `intensity` parameter is optional. The 13 existing signal types
-  still work identically. New types are additive.
-- **No file-format change:** trait-state.json and signals.json
-  layouts are byte-identical to 1.0.1.
-- **EvoBench-driven roadmap.** Future improvements (longitudinal
-  trait drift, contradiction handling, journal-soul separation
-  scoring) will likely come from EvoBench v0.2 fixtures landing
-  first, persona patches following.
-
-## [1.0.1] - earlier
-
-Last release before EvoBench audit. See git history.
+[Unreleased]: https://github.com/OneNomad-LLC/przm-voice/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/OneNomad-LLC/przm-voice/releases/tag/v1.0.0

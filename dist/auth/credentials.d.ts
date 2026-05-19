@@ -1,8 +1,8 @@
 /**
- * Credentials file — the resting place for Pyre Cloud login tokens.
+ * Credentials file — the resting place for przm Cloud login tokens.
  *
  * Owned exclusively by the `login` / `logout` subcommands and the cloud
- * storage adapter. Everything else in Persona is local-first and must
+ * storage adapter. Everything else in przm Voice is local-first and must
  * not touch this file. The file is mode 0600 in a 0700 directory so a
  * shared-host attacker can't read it; permissions are re-asserted on
  * every write because a pre-existing file may have looser perms from a

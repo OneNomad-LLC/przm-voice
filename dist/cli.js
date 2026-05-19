@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 /**
- * Persona CLI router.
+ * przm Voice CLI router.
  *
  * Usage:
- *   persona-mcp                                              run MCP stdio server (back-compat)
- *   persona-mcp read [--project <p>] [--files <list>]        read soul files, output markdown
- *   persona-mcp login [<server>] [--server <url>]            device-code login to Pyre Cloud
- *   persona-mcp logout                                       clear saved Pyre Cloud credentials
- *   persona-mcp help
+ *   przm-voice-mcp                                              run MCP stdio server (back-compat)
+ *   przm-voice-mcp read [--project <p>] [--files <list>]        read soul files, output markdown
+ *   przm-voice-mcp login [<server>] [--server <url>]            device-code login to przm Cloud
+ *   przm-voice-mcp logout                                       clear saved przm Cloud credentials
+ *   przm-voice-mcp help
  *
  * The CLI is additive — it wraps the same soul-file primitives the MCP
  * server uses so hook scripts can pull personality context without
  * speaking stdio JSON-RPC.
  *
  * --project <p> looks up <dataDir>/soul/<p>/X.md first, then falls back
- * to the global <dataDir>/soul/X.md. Today Persona's soul files are
+ * to the global <dataDir>/soul/X.md. Today przm Voice's soul files are
  * global only — the per-project lookup is forward-compatible for when
  * project-scoped souls land. Existing MCP tools are untouched.
  */
@@ -25,14 +25,14 @@ import { loadConfig } from './config.js';
 import { SOUL_FILE_NAMES } from './types.js';
 import { runLogin } from './auth/login.js';
 import { deleteCredentials } from './auth/credentials.js';
-const HELP = `persona-mcp — personality CLI
+const HELP = `przm-voice-mcp — personality CLI
 
 Usage:
-  persona-mcp                                  run MCP stdio server
-  persona-mcp read [opts]                      read soul files
-  persona-mcp login [<server>] [opts]          device-code login to Pyre Cloud
-  persona-mcp logout                           clear saved Pyre Cloud credentials
-  persona-mcp help                             this message
+  przm-voice-mcp                                  run MCP stdio server
+  przm-voice-mcp read [opts]                      read soul files
+  przm-voice-mcp login [<server>] [opts]          device-code login to przm Cloud
+  przm-voice-mcp logout                           clear saved przm Cloud credentials
+  przm-voice-mcp help                             this message
 
 read options:
   --project <p>    look in <dataDir>/soul/<p>/ first, fall back to global
@@ -40,7 +40,7 @@ read options:
                    (default: all three, in that order)
 
 login options:
-  <server>         positional Pyre server URL
+  <server>         positional przm server URL
   --server <url>   same, as a flag
 
   Server URL must come from one of: positional arg, --server flag, or
@@ -68,7 +68,7 @@ const SECTION_HEADERS = {
     skill: '## Working Style',
 };
 function fail(msg) {
-    process.stderr.write(`persona-mcp: ${msg}\n`);
+    process.stderr.write(`przm-voice-mcp: ${msg}\n`);
     process.exit(2);
 }
 function parseFiles(raw) {
@@ -135,12 +135,12 @@ async function main() {
             process.stdout.write('Logged out.\n');
             return;
         default:
-            process.stderr.write(`persona-mcp: unknown subcommand "${sub}"\n\n${HELP}`);
+            process.stderr.write(`przm-voice-mcp: unknown subcommand "${sub}"\n\n${HELP}`);
             process.exit(2);
     }
 }
 main().catch(err => {
-    process.stderr.write(`persona-mcp: ${err.stack ?? err}\n`);
+    process.stderr.write(`przm-voice-mcp: ${err.stack ?? err}\n`);
     process.exit(1);
 });
 //# sourceMappingURL=cli.js.map

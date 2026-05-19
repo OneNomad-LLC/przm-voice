@@ -164,7 +164,7 @@ export class PostgresStorageAdapter {
     }
     // ── Loaders ─────────────────────────────────────────────────────
     async loadState(client) {
-        const res = await client.query('SELECT profile, trait_state, proposals, active_role FROM persona_state WHERE tenant_id = $1', [this.tenantId]);
+        const res = await client.query('SELECT profile, trait_state, proposals, active_role FROM voice_state WHERE tenant_id = $1', [this.tenantId]);
         if (res.rows.length === 0) {
             this.cache.profile = null;
             this.cache.traitState = null;
@@ -181,7 +181,7 @@ export class PostgresStorageAdapter {
         this.cache.activeRole = typeof row.active_role === 'string' ? row.active_role : null;
     }
     async loadSignals(client) {
-        const res = await client.query('SELECT payload FROM persona_signals WHERE tenant_id = $1 ORDER BY created_at ASC, id ASC', [this.tenantId]);
+        const res = await client.query('SELECT payload FROM voice_signals WHERE tenant_id = $1 ORDER BY created_at ASC, id ASC', [this.tenantId]);
         this.cache.signals = res.rows.map((r) => r.payload);
     }
     async loadSessions(client) {
@@ -235,7 +235,7 @@ export class PostgresStorageAdapter {
         const proposals = this.cache.proposals;
         const activeRole = this.cache.activeRole;
         this.enqueue(async () => {
-            await this.pool.query(`INSERT INTO persona_state (tenant_id, profile, trait_state, proposals, active_role, updated_at)
+            await this.pool.query(`INSERT INTO voice_state (tenant_id, profile, trait_state, proposals, active_role, updated_at)
          VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5, now())
          ON CONFLICT (tenant_id) DO UPDATE SET
            profile = EXCLUDED.profile,
@@ -291,13 +291,13 @@ export class PostgresStorageAdapter {
         }
         const tenantId = this.tenantId;
         this.enqueue(async () => {
-            await this.pool.query('INSERT INTO persona_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)', [tenantId, signal.type, JSON.stringify(signal)]);
+            await this.pool.query('INSERT INTO voice_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)', [tenantId, signal.type, JSON.stringify(signal)]);
             // FIFO trim — delete oldest beyond cap. id is monotonic so we
             // can ORDER BY id DESC to find the cutoff cheaply.
-            await this.pool.query(`DELETE FROM persona_signals
+            await this.pool.query(`DELETE FROM voice_signals
          WHERE tenant_id = $1
            AND id NOT IN (
-             SELECT id FROM persona_signals
+             SELECT id FROM voice_signals
              WHERE tenant_id = $1
              ORDER BY id DESC
              LIMIT $2
@@ -311,7 +311,7 @@ export class PostgresStorageAdapter {
         this.cache.signals = [];
         const tenantId = this.tenantId;
         this.enqueue(async () => {
-            await this.pool.query('DELETE FROM persona_signals WHERE tenant_id = $1', [tenantId]);
+            await this.pool.query('DELETE FROM voice_signals WHERE tenant_id = $1', [tenantId]);
         });
     }
     // ── Sessions ────────────────────────────────────────────────────

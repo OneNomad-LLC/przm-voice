@@ -11,7 +11,7 @@ export const SOUL_FILE_NAMES: (keyof SoulFiles)[] = ['personality', 'style', 'sk
 // ── Roles ────────────────────────────────────────────────────────────
 // Roles are domain overlays layered on top of the soul. Soul = WHO I am
 // (voice, tone). Role = WHAT I'm doing (developer, designer, pm…).
-// Roles are user-territory like soul files — Persona never auto-writes them.
+// Roles are user-territory like soul files — przm Voice never auto-writes them.
 
 export interface RoleFile {
   name: string;
@@ -24,7 +24,7 @@ export interface RoleFile {
 // the compiled file location at runtime.
 
 // ── Journal ──────────────────────────────────────────────────────────
-// Persona's auto-derived notes. Live in dataDir/journal/, separate from
+// przm Voice's auto-derived notes. Live in dataDir/journal/, separate from
 // soul/ so user edits to soul are sacred. applyProposal writes here.
 
 export interface JournalFiles {

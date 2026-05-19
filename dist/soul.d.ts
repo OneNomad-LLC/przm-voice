@@ -16,10 +16,10 @@ export declare function writeSoulFile(_config: PersonaConfig, file: keyof SoulFi
 export declare function initSoulFiles(config: PersonaConfig): SoulFiles;
 /**
  * Sizing for the assembled context. Lets callers trade detail for
- * token budget — Pyre's Context Budget Engine asks for `minimal`
- * when the persona slot has tight budget, `standard` for routine
+ * token budget — przm's Context Budget Engine asks for `minimal`
+ * when the personality slot has tight budget, `standard` for routine
  * chat, `full` for deep-context turns where the agent needs
- * Persona's accumulated journal notes too.
+ * przm Voice's accumulated journal notes too.
  *
  *   minimal  ~400 tokens — personality + role only. Drops style,
  *                          working-style, and journal layers. Just

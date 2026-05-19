@@ -20,7 +20,7 @@ export function isSafeRoleName(name) {
  */
 export function assertSafeRoleName(name) {
     if (!isSafeRoleName(name)) {
-        throw new Error(`persona-mcp: invalid role name. Role names must match /^[a-z0-9][a-z0-9_-]{0,62}$/. Got: ${JSON.stringify(name).slice(0, 80)}`);
+        throw new Error(`przm-voice: invalid role name. Role names must match /^[a-z0-9][a-z0-9_-]{0,62}$/. Got: ${JSON.stringify(name).slice(0, 80)}`);
     }
 }
 /**
@@ -29,14 +29,14 @@ export function assertSafeRoleName(name) {
  * Soul defines WHO Claude is (voice, tone, working principles).
  * Role defines WHAT Claude is doing right now (developer, designer, pm, …).
  *
- * Roles are user-territory: Persona never auto-writes them. Bundled defaults
+ * Roles are user-territory: przm Voice never auto-writes them. Bundled defaults
  * ship as on-disk files in persona/presets/roles/<name>/ROLE.md (read
  * directly off the package directory in any backend). User overrides
  * or new roles flow through the StorageAdapter — file mode keeps them
  * at dataDir/roles/<name>/ROLE.md, postgres mode keeps them per-tenant.
  *
  * Active role state lives in adapter.getActiveRole(); per-conversation
- * override is the caller's responsibility (pass roleName into persona_context).
+ * override is the caller's responsibility (pass roleName into voice_context).
  */
 // Resolve the bundled presets dir relative to the compiled module. Walks up
 // from dist/ (or src/) until it finds presets/. Cached after the first lookup.

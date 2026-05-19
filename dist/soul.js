@@ -48,7 +48,7 @@ export function initSoulFiles(config) {
 export function buildSoulContext(files, layers) {
     const size = layers?.size ?? 'standard';
     const sections = [];
-    // Soul + journal layered per-section. Journal is Persona's auto-derived
+    // Soul + journal layered per-section. Journal is przm Voice's auto-derived
     // notes (from applied evolution proposals); soul is user-territory.
     // Showing them together keeps the prompt coherent without commingling
     // ownership in the underlying files. Skipped entirely on 'minimal'
@@ -67,7 +67,7 @@ export function buildSoulContext(files, layers) {
     if (personality)
         sections.push(personality);
     // Style + working-style only fire at standard / full. Minimal mode
-    // intentionally drops them — those sections describe HOW Pyre
+    // intentionally drops them — those sections describe HOW przm
     // talks and works, but on a tight budget the immutable Personality
     // section + the active Role carry the load. Style/working preferences
     // can re-surface on the next turn when budget allows.

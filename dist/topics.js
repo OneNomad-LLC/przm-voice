@@ -6,7 +6,7 @@
  * comes from the association store itself (EMA + frequency cap), not
  * from precision here.
  *
- * Ported from Pyre's evolution-manager. Not a substitute for proper
+ * Ported from przm's evolution-manager. Not a substitute for proper
  * NER; matches a content-word grab pattern and relies on the EMA +
  * frequency cap downstream to shake out noise.
  */

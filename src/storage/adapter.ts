@@ -7,7 +7,7 @@ import type {
 } from '../types.js';
 
 /**
- * Storage adapter — pluggable backend for all persistent Persona state.
+ * Storage adapter — pluggable backend for all persistent przm Voice state.
  *
  * File mode keeps the historical on-disk layout under PERSONA_DATA_DIR.
  * Postgres mode scopes every read and write by tenantId so a single
@@ -19,7 +19,7 @@ import type {
  *
  * The procedural bridge file at `~/.claude/procedural-bridge.json` is
  * deliberately out of scope: it is a host-local interop contract with
- * Engram and is not multi-tenant data.
+ * przm Memory and is not multi-tenant data.
  */
 
 export interface SessionSummary {
@@ -73,7 +73,7 @@ export interface StorageAdapter {
   writeSoul(name: SoulName, content: string): void;
   listSouls(): Array<{ name: SoulName; content: string }>;
 
-  // ── Journal (Persona-derived markdown) ──────────────────────────
+  // ── Journal (przm Voice-derived markdown) ───────────────────────
   readJournal(name: JournalName): string;
   writeJournal(name: JournalName, content: string): void;
   deleteJournal(name: JournalName): boolean;

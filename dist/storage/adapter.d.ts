@@ -1,6 +1,6 @@
 import type { BehavioralProfile, BehavioralSignal, EvolutionProposal, SoulFiles, TraitState } from '../types.js';
 /**
- * Storage adapter — pluggable backend for all persistent Persona state.
+ * Storage adapter — pluggable backend for all persistent przm Voice state.
  *
  * File mode keeps the historical on-disk layout under PERSONA_DATA_DIR.
  * Postgres mode scopes every read and write by tenantId so a single
@@ -12,7 +12,7 @@ import type { BehavioralProfile, BehavioralSignal, EvolutionProposal, SoulFiles,
  *
  * The procedural bridge file at `~/.claude/procedural-bridge.json` is
  * deliberately out of scope: it is a host-local interop contract with
- * Engram and is not multi-tenant data.
+ * przm Memory and is not multi-tenant data.
  */
 export interface SessionSummary {
     id: string;

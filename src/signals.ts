@@ -67,7 +67,7 @@ export function getRecentSignals(signals: BehavioralSignal[], daysBack: number =
 // pass an explicit `type` to recordSignal() (current behavior) or run
 // detectSignals() to classify a user message into zero or more signals.
 //
-// Ported from Pyre's evolution package. The Pyre-only types
+// Ported from przm's evolution package. The przm-only types
 // (model_override, long_engagement, quick_done) are deliberately
 // dropped — they're routing/engine concerns, not personality signals.
 

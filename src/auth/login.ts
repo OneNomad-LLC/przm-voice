@@ -3,12 +3,12 @@ import { spawn } from 'node:child_process';
 import { writeCredentials, getCredentialsPath } from './credentials.js';
 
 /**
- * Device-code login against a Pyre server.
+ * Device-code login against a przm server.
  *
  * The server URL is never hardcoded. It must come from one of:
- *   1. positional arg:   persona-mcp login https://my-pyre.example.com
- *   2. flag:             persona-mcp login --server <url>
- *   3. env var:          PYRE_API_URL=... persona-mcp login
+ *   1. positional arg:   przm-voice-mcp login https://my-pyre.example.com
+ *   2. flag:             przm-voice-mcp login --server <url>
+ *   3. env var:          PYRE_API_URL=... przm-voice-mcp login
  *
  * The poll's `approved` response returns `api_url` separately from the
  * server URL the user typed. That returned URL is the runtime storage
@@ -286,7 +286,7 @@ export async function runLogin(argv: string[]): Promise<void> {
     process.exit(1);
   }
   if (result.kind === 'expired') {
-    process.stderr.write('Pairing code expired. Run `persona-mcp login` again.\n');
+    process.stderr.write('Pairing code expired. Run `przm-voice-mcp login` again.\n');
     process.exit(1);
   }
   if (result.kind === 'timeout') {

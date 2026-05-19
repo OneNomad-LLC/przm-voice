@@ -11,10 +11,10 @@ import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
- * Credentials file — the resting place for Pyre Cloud login tokens.
+ * Credentials file — the resting place for przm Cloud login tokens.
  *
  * Owned exclusively by the `login` / `logout` subcommands and the cloud
- * storage adapter. Everything else in Persona is local-first and must
+ * storage adapter. Everything else in przm Voice is local-first and must
  * not touch this file. The file is mode 0600 in a 0700 directory so a
  * shared-host attacker can't read it; permissions are re-asserted on
  * every write because a pre-existing file may have looser perms from a
@@ -57,7 +57,7 @@ export function readCredentials(): Credentials | null {
     raw = readFileSync(path, 'utf-8');
   } catch (err) {
     process.stderr.write(
-      `persona-mcp: failed to read credentials at ${path}: ${(err as Error).message}\n`,
+      `przm-voice: failed to read credentials at ${path}: ${(err as Error).message}\n`,
     );
     return null;
   }
@@ -66,13 +66,13 @@ export function readCredentials(): Credentials | null {
     parsed = JSON.parse(raw);
   } catch (err) {
     process.stderr.write(
-      `persona-mcp: credentials at ${path} are not valid JSON: ${(err as Error).message}\n`,
+      `przm-voice: credentials at ${path} are not valid JSON: ${(err as Error).message}\n`,
     );
     return null;
   }
   if (!isCredentials(parsed)) {
     process.stderr.write(
-      `persona-mcp: credentials at ${path} are missing required fields; ignoring\n`,
+      `przm-voice: credentials at ${path} are missing required fields; ignoring\n`,
     );
     return null;
   }

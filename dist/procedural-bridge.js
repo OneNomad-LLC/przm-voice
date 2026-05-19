@@ -29,7 +29,7 @@ export function exportProposalsToBridge(config) {
     const proposals = loadProposals(config);
     const applied = proposals.filter(p => p.status === 'applied');
     const bridge = loadBridgeFile();
-    // Keep Engram-sourced rules, replace Persona-sourced rules
+    // Keep Memory-sourced rules, replace Voice-sourced rules
     const engramRules = bridge.rules.filter(r => r.source === 'engram');
     const personaRules = applied.map(p => ({
         id: `persona:${p.id}`,
@@ -46,7 +46,7 @@ export function exportProposalsToBridge(config) {
     saveBridgeFile(bridge);
     return personaRules.length;
 }
-// ── Import Engram Rules → Persona Proposals ────────────────────────
+// ── Import Memory Rules → Voice Proposals ──────────────────────────
 export function importRulesFromBridge(config) {
     const bridge = loadBridgeFile();
     const engramRules = bridge.rules.filter(r => r.source === 'engram');

@@ -9,7 +9,7 @@ import { writeSoulFile } from './soul.js';
  *
  * Each preset is a single SOUL.md file describing voice/identity. Applying
  * a preset writes its content into the user's PERSONALITY.md (the closest
- * Persona analog to Finch's SOUL.md). STYLE.md and SKILL.md stay untouched —
+ * przm Voice analog to Finch's SOUL.md). STYLE.md and SKILL.md stay untouched —
  * those layers are independent.
  */
 let _presetsDir = null;

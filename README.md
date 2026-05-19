@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="./persona-logo.png" alt="przm Voice" width="120" />
-</p>
-
 # przm Voice <sub>(persona)</sub>
 
 [![przm: Voice](https://img.shields.io/badge/przm-Voice-F59520?style=flat-square&labelColor=1a1a1a)](https://przm.sh)
@@ -36,11 +32,11 @@ No API keys needed. No cloud services. Two runtime dependencies and some JSON on
 
 przm Voice separates the personality into three layers, each with a clear ownership boundary. They get composed at prompt-build time but live in different files so it's never ambiguous what came from where.
 
-**Soul** lives at `~/.claude/persona/soul/` and is *user territory*. Three files — PERSONALITY.md, STYLE.md, SKILL.md — that you edit directly via `persona_edit` or your text editor. The system never auto-writes here. PERSONALITY.md covers who the agent is (tone, humor, directness). STYLE.md covers how it communicates (formatting, verbosity, emoji). SKILL.md covers how it works (when to ask permission, which topics get depth). A small set of core principles is baked into the defaults — honesty, real engagement on hard topics, harm prevention — and you can extend or overwrite the rest.
+**Soul** lives at `~/.claude/persona/soul/` and is *user territory*. Three files — PERSONALITY.md, STYLE.md, SKILL.md — that you edit directly via `voice_edit` or your text editor. The system never auto-writes here. PERSONALITY.md covers who the agent is (tone, humor, directness). STYLE.md covers how it communicates (formatting, verbosity, emoji). SKILL.md covers how it works (when to ask permission, which topics get depth). A small set of core principles is baked into the defaults — honesty, real engagement on hard topics, harm prevention — and you can extend or overwrite the rest.
 
-**Role** is a domain overlay layered on top of the soul. Soul defines *who* the agent is; role defines *what* it's doing right now. Five roles ship bundled — `developer`, `designer`, `pm`, `writer`, `researcher` — and you can drop your own at `~/.claude/persona/roles/<name>/ROLE.md` to override or add new ones. Set the active role globally with `persona_role_set`, or override per call with `persona_context({ role })`. Roles are user territory; the system never auto-writes them.
+**Role** is a domain overlay layered on top of the soul. Soul defines *who* the agent is; role defines *what* it's doing right now. Five roles ship bundled — `developer`, `designer`, `pm`, `writer`, `researcher` — and you can drop your own at `~/.claude/persona/roles/<name>/ROLE.md` to override or add new ones. Set the active role globally with `voice_role_set`, or override per call with `voice_context({ role })`. Roles are user territory; the system never auto-writes them.
 
-**Journal** lives at `~/.claude/persona/journal/` and is *Voice's territory*. When you apply an evolution proposal, the content lands in the journal — never in the soul. The journal is layered into the prompt right alongside the matching soul section, so the agent sees a unified personality, but you can wipe the journal at any time with `persona_journal_clear` without losing your hand-tuned soul edits. This is the same trichotomy [Pyre](https://pyre.sh) uses for its prompt build, and it solves the muddy ownership problem of older persona systems where applied proposals overwrite user-authored files.
+**Journal** lives at `~/.claude/persona/journal/` and is *Voice's territory*. When you apply an evolution proposal, the content lands in the journal — never in the soul. The journal is layered into the prompt right alongside the matching soul section, so the agent sees a unified personality, but you can wipe the journal at any time with `voice_journal_clear` without losing your hand-tuned soul edits. This is the same trichotomy [przm](https://przm.sh) uses for its prompt build, and it solves the muddy ownership problem of older persona systems where applied proposals overwrite user-authored files.
 
 Soul files start mostly empty. A couple of baseline rules like "don't say Great question!" and "read before writing." The rest fills in from real interactions — into the journal, not the soul.
 
@@ -263,45 +259,158 @@ Then point your MCP client at `dist/server.js`:
 | `maxSignals` | `500` | Signal buffer size (FIFO) |
 | `proposalThreshold` | `12` | Signals between auto-generating proposals |
 
+### Hosted (przm Cloud)
+
+The default install is fully local. If you run a przm server (yours or OneNomad's) you can point przm Voice at it with two commands.
+
+```sh
+# 1. Install the package as usual.
+pnpm add -g @onenomad/przm-voice  # or `npm i -g`, `npx`, etc.
+
+# 2. Log in. The URL is supplied — there is no default.
+przm-voice login https://przm.sh
+# → Visit https://.../dashboard/devices/PYRE-XXXX-XXXX to authorize.
+#   Code: PYRE-XXXX-XXXX
+```
+
+A browser tab opens automatically; if it doesn't, copy the printed URL. Approve the device on the przm dashboard and the CLI writes `~/.pyre/credentials.json` (mode 0600). After that, runtime calls transparently use the cloud backend — no extra flags, no MCP config changes.
+
+#### Override the server URL
+
+Three ways to supply the URL to `login`, in priority order:
+
+```sh
+przm-voice login https://przm.sh         # positional
+przm-voice login --server https://przm.sh # flag
+PYRE_API_URL=https://przm.sh przm-voice login  # env
+```
+
+If none is provided, login exits with an error. There is no hardcoded default.
+
+#### Force local mode (CI, headless, sandboxes)
+
+```sh
+STORAGE_BACKEND=file przm-voice        # always uses ~/.claude/persona
+```
+
+`STORAGE_BACKEND=file` wins over any credentials file on disk.
+
+#### Override credential fields (CI bots)
+
+If a credentials file exists but CI needs a different key or URL, either field can be overridden individually:
+
+```sh
+PERSONA_API_KEY=sk_pyre_ci_xxx przm-voice
+PERSONA_API_URL=https://staging.pyre.sh przm-voice
+```
+
+The env value wins over the matching field in `credentials.json`.
+
+#### Log out
+
+```sh
+przm-voice logout      # removes ~/.pyre/credentials.json, idempotent
+```
+
+#### Credentials file path
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PYRE_CREDENTIALS_FILE` | `~/.pyre/credentials.json` | Override where credentials live. File is mode 0600 in a 0700 directory. |
+
+#### Disable cloud auto-routing
+
+By default, if `~/.pyre/credentials.json` exists, przm-voice routes storage to przm Cloud. This is convenient after `przm-voice login` but surprising in benchmarks, CI, and local-dev runs where you want to guarantee no traffic hits the wire. Set `PERSONA_NO_AUTO_CLOUD=1` to skip the credentials-file check and fall through to the local file adapter even when credentials exist.
+
+```sh
+PERSONA_NO_AUTO_CLOUD=1 przm-voice        # ignore credentials.json
+STORAGE_BACKEND=file przm-voice           # equivalent, more explicit
+```
+
+Whichever storage backend resolves, the server writes one line to stderr at startup naming the decision (`przm-voice: storage=cloud (auto-routed via ~/.pyre/credentials.json) · …`) so the routing is never silent. If you see cloud routing when you expected local, that line tells you why.
+
+### Cloud / multi-tenant mode
+
+przm Voice ships with a pluggable storage layer. The default backend is local files under `PERSONA_DATA_DIR` — that path is documented throughout this README and is unchanged. The Postgres backend exists for hosted multi-tenant deployments and is gated entirely behind environment variables.
+
+| `STORAGE_BACKEND` | Required env | Where state lives |
+| --- | --- | --- |
+| `file` (default) | `PERSONA_DATA_DIR` (optional, defaults to `~/.claude/persona`) | On-disk JSON + markdown under the data directory, exactly as documented above. |
+| `postgres` | `DATABASE_URL`, `TENANT_ID` | Single Postgres database; every row scoped by `tenant_id`. |
+
+Soul presets seed lazily in Postgres mode. The first `readSoul('personality')` for a fresh tenant copies `presets/souls/default/SOUL.md` into the tenant's `persona_soul` row, then returns it. Style and skill files seed from the same blank-slate defaults the file backend uses. Bundled role presets are read directly from `presets/roles/` in both backends — they ship with the package, not the database.
+
+The procedural bridge file at `~/.claude/procedural-bridge.json` remains on the host filesystem in both modes. It is a cross-process interop contract with Engram, not tenant state.
+
+#### Schema and migrations
+
+Schema lives in `migrations/postgres/001_init.sql`. Six tables, all keyed by `tenant_id`:
+
+- `persona_state` — one row per tenant, jsonb columns for profile, trait state, proposals; text for active role.
+- `voice_signals` / `persona_sessions` — bigserial primary keys, FIFO-trimmed to 500 / 100 entries per tenant on insert.
+- `persona_soul`, `persona_journal`, `persona_roles` — composite primary key `(tenant_id, name)`, content as text.
+
+Run migrations with:
+
+```sh
+DATABASE_URL=postgres://user:pass@host/db pnpm run migrate
+```
+
+The runner tracks applied versions in a `persona_migrations` table and is safe to re-run.
+
+#### Smoke test
+
+`pnpm run smoke` exercises the active backend end-to-end (append signal, read profile on empty tenant, write and round-trip a soul file).
+
+```sh
+# File mode — uses a fresh tmpdir, does not touch real data
+pnpm run smoke
+
+# Postgres mode — runs migrations first, uses TENANT_ID="smoke-<uuid>"
+STORAGE_BACKEND=postgres DATABASE_URL=postgres://... pnpm run smoke
+```
+
+Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres backend is for hosted environments where many users share infrastructure but each must see only their own personality data.
+
 ## Tools
 
-25 tools across ten groups. The standalone `persona_adapt` and `persona_procedural_sync` were folded into `persona_context` and `persona_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation. 1.0.0 adds the role overlay, journal namespace, and a bundled library of 9 soul presets + 10 role presets ported from Finch.
+25 tools across ten groups. The standalone `voice_adapt` and `voice_procedural_sync` were folded into `voice_context` and `voice_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation. 1.0.0 adds the role overlay, journal namespace, and a bundled library of 9 soul presets + 10 role presets ported from Finch.
 
 ### Context
 
 | Tool | What it does |
 |------|-------------|
-| `persona_context` | Full personality dump: soul files plus learned adaptations. Good to call at the start of complex interactions. Adaptations alone can be pulled from the response if you don't want the soul-file content (replaces the old `persona_adapt`). |
+| `voice_context` | Full personality dump: soul files plus learned adaptations. Good to call at the start of complex interactions. Adaptations alone can be pulled from the response if you don't want the soul-file content (replaces the old `voice_adapt`). |
 
 ### Signal Recording
 
 | Tool | What it does |
 |------|-------------|
-| `persona_signal` | Record a behavioral signal. This drives everything else in the system. |
+| `voice_signal` | Record a behavioral signal. This drives everything else in the system. |
 
 ### Profile & Stats
 
 | Tool | What it does |
 |------|-------------|
-| `persona_profile` | The behavioral profile: preferences, satisfaction, topic patterns. |
-| `persona_stats` | High-level overview with signal counts, profile state, pending proposals, soul file sizes, and Engram bridge status. |
+| `voice_profile` | The behavioral profile: preferences, satisfaction, topic patterns. |
+| `voice_stats` | High-level overview with signal counts, profile state, pending proposals, soul file sizes, and Engram bridge status. |
 
 ### Evolution
 
 | Tool | What it does |
 |------|-------------|
-| `persona_proposals` | List proposals with evidence and rationale. |
-| `persona_apply` | Apply a pending proposal. |
-| `persona_reject` | Reject one. |
-| `persona_evolve` | Force proposal generation without waiting for the signal threshold. |
+| `voice_proposals` | List proposals with evidence and rationale. |
+| `voice_apply` | Apply a pending proposal. |
+| `voice_reject` | Reject one. |
+| `voice_evolve` | Force proposal generation without waiting for the signal threshold. |
 
 ### Soul Files
 
 | Tool | What it does |
 |------|-------------|
-| `persona_read` | Read a soul file. |
-| `persona_edit` | Overwrite a soul file directly. Full manual control. |
-| `persona_init` | Initialize defaults. Won't overwrite existing files. |
+| `voice_read` | Read a soul file. |
+| `voice_edit` | Overwrite a soul file directly. Full manual control. |
+| `voice_init` | Initialize defaults. Won't overwrite existing files. |
 
 ### Soul Presets (bundled identity templates)
 
@@ -316,7 +425,7 @@ Then point your MCP client at `dist/server.js`:
 | Tool | What it does |
 |------|-------------|
 | `persona_role_list` | List bundled and user-defined roles, plus the active one. |
-| `persona_role_set` | Activate a role globally. |
+| `voice_role_set` | Activate a role globally. |
 | `persona_role_clear` | Clear the active role; soul-only context resumes. |
 | `persona_role_read` | Read a role file. Returns the user override if present, else the bundled default. |
 | `persona_role_edit` | Override or create a custom role at `dataDir/roles/<name>/ROLE.md`. |
@@ -326,7 +435,7 @@ Then point your MCP client at `dist/server.js`:
 | Tool | What it does |
 |------|-------------|
 | `persona_journal_read` | Read Voice's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
-| `persona_journal_clear` | Wipe the journal without touching the user-edited soul. |
+| `voice_journal_clear` | Wipe the journal without touching the user-edited soul. |
 
 ### Synthesis
 
@@ -339,7 +448,7 @@ Then point your MCP client at `dist/server.js`:
 
 | Tool | What it does |
 |------|-------------|
-| `persona_consolidate` | Run the between-session consolidation pass. Decays stale emotions, detects drift, checks for sycophancy, and auto-syncs the Engram procedural bridge (replaces the old `persona_procedural_sync`). Also runs automatically on startup if >24h since last consolidation. |
+| `voice_consolidate` | Run the between-session consolidation pass. Decays stale emotions, detects drift, checks for sycophancy, and auto-syncs the Engram procedural bridge (replaces the old `voice_procedural_sync`). Also runs automatically on startup if >24h since last consolidation. |
 
 ### Bridge
 
@@ -460,138 +569,9 @@ When both MCP servers are running, they coordinate through three mechanisms:
 
 2. **Cognitive-load-gated search.** When Voice detects cognitive overload, Memory's search receives the load signal and returns only the top 3 high-importance memories instead of the full set. Less noise when you're already overwhelmed.
 
-3. **Procedural bridge.** Voice's applied evolution proposals and Memory's learned procedural rules sync through a shared file at `~/.claude/procedural-bridge.json`. Voice proposals become Memory rules. Memory rules become Voice proposals with semantic conflict detection against existing soul files — catches antonym pairs and value contradictions, not just exact duplicates. The bridge auto-syncs during `persona_consolidate`, and bridge health is visible via `persona_stats`.
+3. **Procedural bridge.** Voice's applied evolution proposals and Memory's learned procedural rules sync through a shared file at `~/.claude/procedural-bridge.json`. Voice proposals become Memory rules. Memory rules become Voice proposals with semantic conflict detection against existing soul files — catches antonym pairs and value contradictions, not just exact duplicates. The bridge auto-syncs during `voice_consolidate`, and bridge health is visible via `voice_stats`.
 
 przm Voice works fine solo. But if you want an agent that feels like it genuinely knows you, not just how to talk to you but what you've told it, run both.
-
-## Cloud / multi-tenant mode
-
-przm Voice ships with a pluggable storage layer. The default backend is local files under `PERSONA_DATA_DIR` — that path is documented throughout this README and is unchanged. The Postgres backend exists for hosted multi-tenant deployments and is gated entirely behind environment variables.
-
-| `STORAGE_BACKEND` | Required env | Where state lives |
-| --- | --- | --- |
-| `file` (default) | `PERSONA_DATA_DIR` (optional, defaults to `~/.claude/persona`) | On-disk JSON + markdown under the data directory, exactly as documented above. |
-| `postgres` | `DATABASE_URL`, `TENANT_ID` | Single Postgres database; every row scoped by `tenant_id`. |
-
-Soul presets seed lazily in Postgres mode. The first `readSoul('personality')` for a fresh tenant copies `presets/souls/default/SOUL.md` into the tenant's `persona_soul` row, then returns it. Style and skill files seed from the same blank-slate defaults the file backend uses. Bundled role presets are read directly from `presets/roles/` in both backends — they ship with the package, not the database.
-
-The procedural bridge file at `~/.claude/procedural-bridge.json` remains on the host filesystem in both modes. It is a cross-process interop contract with Engram, not tenant state.
-
-### Schema and migrations
-
-Schema lives in `migrations/postgres/001_init.sql`. Six tables, all keyed by `tenant_id`:
-
-- `persona_state` — one row per tenant, jsonb columns for profile, trait state, proposals; text for active role.
-- `persona_signals` / `persona_sessions` — bigserial primary keys, FIFO-trimmed to 500 / 100 entries per tenant on insert.
-- `persona_soul`, `persona_journal`, `persona_roles` — composite primary key `(tenant_id, name)`, content as text.
-
-Run migrations with:
-
-```sh
-DATABASE_URL=postgres://user:pass@host/db pnpm run migrate
-```
-
-The runner tracks applied versions in a `persona_migrations` table and is safe to re-run.
-
-### Smoke test
-
-`pnpm run smoke` exercises the active backend end-to-end (append signal, read profile on empty tenant, write and round-trip a soul file).
-
-```sh
-# File mode — uses a fresh tmpdir, does not touch real data
-pnpm run smoke
-
-# Postgres mode — runs migrations first, uses TENANT_ID="smoke-<uuid>"
-STORAGE_BACKEND=postgres DATABASE_URL=postgres://... pnpm run smoke
-```
-
-Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres backend is for hosted environments where many users share infrastructure but each must see only their own personality data.
-
-## Hosted (Pyre Cloud)
-
-The default install is fully local. If you run a Pyre server (yours or
-OneNomad's) you can point przm Voice at it with two commands.
-
-```sh
-# 1. Install the package as usual.
-pnpm add -g @onenomad/przm-voice  # or `npm i -g`, `npx`, etc.
-
-# 2. Log in. The URL is supplied — there is no default.
-przm-voice login https://pyre.sh
-# → Visit https://.../dashboard/devices/PYRE-XXXX-XXXX to authorize.
-#   Code: PYRE-XXXX-XXXX
-```
-
-A browser tab opens automatically; if it doesn't, copy the printed URL.
-Approve the device on the Pyre dashboard and the CLI writes
-`~/.pyre/credentials.json` (mode 0600). After that, runtime calls
-transparently use the cloud backend — no extra flags, no MCP config
-changes.
-
-### Override the server URL
-
-Three ways to supply the URL to `login`, in priority order:
-
-```sh
-przm-voice login https://pyre.sh         # positional
-przm-voice login --server https://pyre.sh # flag
-PYRE_API_URL=https://pyre.sh przm-voice login  # env
-```
-
-If none is provided, login exits with an error. There is no hardcoded
-default.
-
-### Force local mode (CI, headless, sandboxes)
-
-```sh
-STORAGE_BACKEND=file przm-voice        # always uses ~/.claude/persona
-```
-
-`STORAGE_BACKEND=file` wins over any credentials file on disk.
-
-### Override credential fields (CI bots)
-
-If a credentials file exists but CI needs a different key or URL,
-either field can be overridden individually:
-
-```sh
-PERSONA_API_KEY=sk_pyre_ci_xxx przm-voice
-PERSONA_API_URL=https://staging.pyre.sh przm-voice
-```
-
-The env value wins over the matching field in `credentials.json`.
-
-### Log out
-
-```sh
-przm-voice logout      # removes ~/.pyre/credentials.json, idempotent
-```
-
-### Credentials file path
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PYRE_CREDENTIALS_FILE` | `~/.pyre/credentials.json` | Override where credentials live. File is mode 0600 in a 0700 directory. |
-
-### Disable cloud auto-routing
-
-By default, if `~/.pyre/credentials.json` exists, przm-voice routes
-storage to PYRE Cloud. This is convenient after `przm-voice login`
-but surprising in benchmarks, CI, and local-dev runs where you want
-to guarantee no traffic hits the wire. Set `PERSONA_NO_AUTO_CLOUD=1`
-to skip the credentials-file check and fall through to the local
-file adapter even when credentials exist.
-
-```sh
-PERSONA_NO_AUTO_CLOUD=1 przm-voice        # ignore credentials.json
-STORAGE_BACKEND=file przm-voice           # equivalent, more explicit
-```
-
-Whichever storage backend resolves, the server writes one line to
-stderr at startup naming the decision (`przm-voice: storage=cloud
-(auto-routed via ~/.pyre/credentials.json) · …`) so the routing is
-never silent. If you see cloud routing when you expected local, that
-line tells you why.
 
 ## License
 

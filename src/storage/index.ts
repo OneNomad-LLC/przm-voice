@@ -46,7 +46,7 @@ export { PostgresStorageAdapter } from './postgres-adapter.js';
  */
 function logRouting(message: string): void {
   try {
-    process.stderr.write(`persona-mcp: ${message}\n`);
+    process.stderr.write(`przm-voice: ${message}\n`);
   } catch {
     // ignore
   }

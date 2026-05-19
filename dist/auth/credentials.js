@@ -34,7 +34,7 @@ export function readCredentials() {
         raw = readFileSync(path, 'utf-8');
     }
     catch (err) {
-        process.stderr.write(`persona-mcp: failed to read credentials at ${path}: ${err.message}\n`);
+        process.stderr.write(`przm-voice: failed to read credentials at ${path}: ${err.message}\n`);
         return null;
     }
     let parsed;
@@ -42,11 +42,11 @@ export function readCredentials() {
         parsed = JSON.parse(raw);
     }
     catch (err) {
-        process.stderr.write(`persona-mcp: credentials at ${path} are not valid JSON: ${err.message}\n`);
+        process.stderr.write(`przm-voice: credentials at ${path} are not valid JSON: ${err.message}\n`);
         return null;
     }
     if (!isCredentials(parsed)) {
-        process.stderr.write(`persona-mcp: credentials at ${path} are missing required fields; ignoring\n`);
+        process.stderr.write(`przm-voice: credentials at ${path} are missing required fields; ignoring\n`);
         return null;
     }
     return parsed;

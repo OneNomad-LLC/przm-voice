@@ -17,6 +17,7 @@ import { detectEmotionalTone, emotionalValence, detectDyads, loadTraitState, sav
 import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain, blendStyleVectors } from './traits.js';
 import { updateCognitiveLoad } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
+import { detectSycophancyInAssistant } from './sycophancy.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
 const config = loadConfig();
 // Storage adapter must be wired before any of the module-level
@@ -115,22 +116,22 @@ function buildLayeredContext(roleNameOverride, size = 'standard') {
     return buildSoulContext(files, { journal, role: roleContent, size });
 }
 const soulContext = buildLayeredContext();
-const server = new McpServer({ name: 'persona', version: '2.4.0' }, {
+const server = new McpServer({ name: 'przm-voice', version: '1.0.0' }, {
     instructions: [
-        '# Persona',
+        '# przm Voice',
         'Adaptive personality. Honest, not agreeable. Style emerges from interactions.',
         soulContext ? '' : '(Personality not yet formed.)',
         soulContext || '',
         '',
-        'Record user reactions immediately with persona_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
-        'After 5+ signals: run persona_synthesize.',
+        'Record user reactions immediately with voice_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
+        'After 5+ signals: run voice_synthesize.',
         'If engram available: memory = WHAT, persona = HOW.',
     ].filter(Boolean).join('\n'),
 });
 // ─────────────────────────────────────────────────────────────────────
 // CONTEXT
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_context', {
+server.registerTool('voice_context', {
     title: 'Get Context',
     description: 'Full personality context: soul files + adaptations + brain state. Pass adaptationsOnly=true for just the adaptive directives. Pass size to control verbosity — \'minimal\' (~400 tokens, just core principles + role) for tight context budgets, \'standard\' (default, ~1-2K tokens) for routine chat, \'full\' (~3-16K tokens) when you need accumulated journal notes too.',
     inputSchema: z.object({
@@ -138,7 +139,7 @@ server.registerTool('persona_context', {
         userMessage: z.string().optional().describe('Process through brain systems first.'),
         adaptationsOnly: z.boolean().optional().describe('If true, return only adaptations (not soul files).'),
         role: z.string().optional().describe('Per-call role override (e.g. "developer"). Falls back to active role then no role.'),
-        size: z.enum(['minimal', 'standard', 'full']).optional().describe('Context verbosity. minimal=~400 tokens (personality + role only); standard=~1-2K tokens (all soul files, no journal) [default]; full=~3-16K tokens (soul + journal-derived "learned" notes). Pyre\'s Context Budget Engine sets this based on the persona slot\'s allocated budget.'),
+        size: z.enum(['minimal', 'standard', 'full']).optional().describe('Context verbosity. minimal=~400 tokens (personality + role only); standard=~1-2K tokens (all soul files, no journal) [default]; full=~3-16K tokens (soul + journal-derived "learned" notes). przm\'s Context Budget Engine sets this based on the personality slot\'s allocated budget.'),
     }),
 }, async ({ category, userMessage, adaptationsOnly, role, size }) => {
     if (userMessage)
@@ -164,7 +165,7 @@ server.registerTool('persona_context', {
     }
     return text(parts.filter(Boolean).join('\n\n') || 'No personality configured.');
 });
-server.registerTool('persona_state', {
+server.registerTool('voice_state', {
     title: 'Emotional State',
     description: 'Lightweight valence/arousal/cognitive-load snapshot. Pass values to memory_ingest and memory_search.',
     inputSchema: z.object({}),
@@ -197,6 +198,24 @@ server.registerTool('persona_state', {
         domainContext: traitState.domainTechnicalRatio > 0.5 ? 'technical' : traitState.domainTechnicalRatio > 0.2 ? 'mixed' : 'casual',
     });
 });
+server.registerTool('voice_detect_sycophancy', {
+    title: 'Detect Sycophancy in Assistant Output',
+    description: 'Scan assistant text for known sycophantic patterns: flattery openers ("great question," "absolutely"), walk-backs without new evidence, position flips (pre-pushback X → post-pushback ¬X), and agreement cascades (N consecutive turns lacking disagreement). Rules-based detection — no LLM in the loop (a model evaluating its own sycophancy is contaminated by the same failure mode). Returns all firing signals sorted by confidence descending; one turn may fire multiple signals (e.g. flattery + walk-back).',
+    inputSchema: z.object({
+        currentAssistantText: z.string().describe('The just-produced assistant turn. Required.'),
+        priorAssistantText: z.string().optional().describe('The prior assistant turn. Required for walk-back and position-flip detection.'),
+        intermediateUserText: z.string().optional().describe('The user message between prior and current assistant turns. Used to gate walk-backs (presence of user-supplied evidence suppresses flattery and walk-back signals as grounded acknowledgment).'),
+        recentAssistantTurns: z.array(z.string()).optional().describe('Full assistant-turn history (oldest → newest, including current) for cascade detection.'),
+        cascadeThreshold: z.number().optional().describe('Number of consecutive agreement-without-disagreement turns required to fire the cascade signal. Default: 4.'),
+    }),
+}, async (args) => {
+    const signals = detectSycophancyInAssistant(args);
+    return json({
+        signals,
+        count: signals.length,
+        hasSycophancy: signals.length > 0,
+    });
+});
 // ─────────────────────────────────────────────────────────────────────
 // SIGNAL RECORDING
 // ─────────────────────────────────────────────────────────────────────
@@ -213,7 +232,7 @@ const VALID_SIGNALS = [
     'neuroticism_positive', 'neuroticism_negative',
 ];
 // Big Five signal types that directly nudge trait state. Outside this
-// set, persona_signal records the signal but only the text-based
+// set, voice_signal records the signal but only the text-based
 // inferTraitSignals path moves Big Five.
 const BIG_FIVE_SIGNAL_AXIS = {
     extraversion_positive: { axis: 'extraversion', direction: 1 },
@@ -248,9 +267,9 @@ function applyBigFiveSignalNudge(state, type, intensity) {
     // processUserMessage so we don't double-count.
     return true;
 }
-// Recent user-message buffer for re_ask detection inside persona_signal.
+// Recent user-message buffer for re_ask detection inside voice_signal.
 const recentUserMessages = [];
-server.registerTool('persona_signal', {
+server.registerTool('voice_signal', {
     title: 'Record Signal',
     description: 'Record a user reaction. Two modes: (1) explicit — pass `type` and `content`; (2) auto-detect — pass `userMessage` and the regex catalog classifies zero or more signals. When both are supplied, `type` wins and detection is skipped.',
     inputSchema: z.object({
@@ -386,7 +405,7 @@ server.registerTool('persona_signal', {
 // ─────────────────────────────────────────────────────────────────────
 // PROFILE & STATS
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_profile', {
+server.registerTool('voice_profile', {
     title: 'View Profile',
     description: 'Behavioral profile: style preferences, satisfaction, topic patterns, Big Five traits, and explicit feedback (recent + pinned).',
     inputSchema: z.object({
@@ -426,7 +445,7 @@ server.registerTool('persona_profile', {
 // ─────────────────────────────────────────────────────────────────────
 // FEEDBACK PIN / UNPIN
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_feedback_pin', {
+server.registerTool('voice_feedback_pin', {
     title: 'Pin Feedback',
     description: 'Pin a piece of explicit feedback so it persists beyond the 10-entry recentFeedback cap. If feedbackContent matches an entry in recentFeedback, it moves; otherwise the content is appended as a fresh pinned entry.',
     inputSchema: z.object({
@@ -456,9 +475,9 @@ server.registerTool('persona_feedback_pin', {
         counts: { recent: recent.length, pinned: pinned.length },
     });
 });
-server.registerTool('persona_feedback_unpin', {
+server.registerTool('voice_feedback_unpin', {
     title: 'Unpin Feedback',
-    description: 'Remove an entry from pinnedFeedback by index. Use persona_profile with format=json to see indices.',
+    description: 'Remove an entry from pinnedFeedback by index. Use voice_profile with format=json to see indices.',
     inputSchema: z.object({
         index: z.number().int().nonnegative().describe('Index into pinnedFeedback.'),
     }),
@@ -473,7 +492,7 @@ server.registerTool('persona_feedback_unpin', {
     saveProfileExternal(config, profile);
     return json({ unpinned: removed, counts: { pinned: pinned.length } });
 });
-server.registerTool('persona_stats', {
+server.registerTool('voice_stats', {
     title: 'Stats',
     description: 'System overview: signals, profile, proposals, soul files, brain state, bridge status.',
     inputSchema: z.object({}),
@@ -567,7 +586,7 @@ server.registerTool('persona_stats', {
 // ─────────────────────────────────────────────────────────────────────
 // EVOLUTION PROPOSALS
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_proposals', {
+server.registerTool('voice_proposals', {
     title: 'List Proposals',
     description: 'Evolution proposals: suggested personality changes from behavioral evidence.',
     inputSchema: z.object({
@@ -582,7 +601,7 @@ server.registerTool('persona_proposals', {
         status: p.status, createdAt: p.createdAt,
     })));
 });
-server.registerTool('persona_apply', {
+server.registerTool('voice_apply', {
     title: 'Apply Proposal',
     description: 'Apply a pending evolution proposal.',
     inputSchema: z.object({
@@ -592,7 +611,7 @@ server.registerTool('persona_apply', {
     const result = applyProposal(config, proposalId);
     return text(result.message);
 });
-server.registerTool('persona_reject', {
+server.registerTool('voice_reject', {
     title: 'Reject Proposal',
     description: 'Reject a pending evolution proposal.',
     inputSchema: z.object({
@@ -602,7 +621,7 @@ server.registerTool('persona_reject', {
     const result = rejectProposal(config, proposalId);
     return text(result.message);
 });
-server.registerTool('persona_evolve', {
+server.registerTool('voice_evolve', {
     title: 'Generate Proposals',
     description: 'Manually trigger evolution proposal generation from accumulated signals.',
     inputSchema: z.object({}),
@@ -623,7 +642,7 @@ server.registerTool('persona_evolve', {
 // ─────────────────────────────────────────────────────────────────────
 // SOUL FILE MANAGEMENT
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_read', {
+server.registerTool('voice_read', {
     title: 'Read Soul File',
     description: 'Read a soul file (personality, style, or skill).',
     inputSchema: z.object({
@@ -633,7 +652,7 @@ server.registerTool('persona_read', {
     const content = readSoulFile(config, file);
     return text(content || `${file} soul file is empty.`);
 });
-server.registerTool('persona_edit', {
+server.registerTool('voice_edit', {
     title: 'Edit Soul File',
     description: 'Overwrite a soul file directly.',
     inputSchema: z.object({
@@ -644,7 +663,7 @@ server.registerTool('persona_edit', {
     writeSoulFile(config, file, content);
     return text(`Updated ${file} soul file (${content.length} chars).`);
 });
-server.registerTool('persona_init', {
+server.registerTool('voice_init', {
     title: 'Initialize',
     description: 'Reset soul files to defaults. Won\'t overwrite existing.',
     inputSchema: z.object({}),
@@ -660,7 +679,7 @@ server.registerTool('persona_init', {
 // ─────────────────────────────────────────────────────────────────────
 // SOUL PRESETS (bundled identity templates ported from Finch)
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_soul_presets_list', {
+server.registerTool('voice_soul_presets_list', {
     title: 'List Soul Presets',
     description: 'List bundled SOUL.md presets (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). Apply one to write its content into PERSONALITY.md.',
     inputSchema: z.object({}),
@@ -674,7 +693,7 @@ server.registerTool('persona_soul_presets_list', {
         })),
     });
 });
-server.registerTool('persona_soul_preset_read', {
+server.registerTool('voice_soul_preset_read', {
     title: 'Read Soul Preset',
     description: 'Read a bundled SOUL.md preset without applying it.',
     inputSchema: z.object({
@@ -684,7 +703,7 @@ server.registerTool('persona_soul_preset_read', {
     const content = readSoulPreset(name);
     return text(content || `Preset "${name}" not found.`);
 });
-server.registerTool('persona_soul_preset_apply', {
+server.registerTool('voice_soul_preset_apply', {
     title: 'Apply Soul Preset',
     description: "Write a bundled SOUL.md preset into the user's PERSONALITY.md. Replaces existing personality content. STYLE.md and SKILL.md are not touched.",
     inputSchema: z.object({
@@ -699,7 +718,7 @@ server.registerTool('persona_soul_preset_apply', {
 // ─────────────────────────────────────────────────────────────────────
 // ROLE LAYER (domain overlays — developer, designer, pm, writer, researcher)
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_role_list', {
+server.registerTool('voice_role_list', {
     title: 'List Roles',
     description: 'List bundled and user-defined roles. Roles are domain overlays (developer, designer, pm…) layered on top of the soul at prompt-build time.',
     inputSchema: z.object({}),
@@ -716,9 +735,9 @@ server.registerTool('persona_role_list', {
         })),
     });
 });
-server.registerTool('persona_role_set', {
+server.registerTool('voice_role_set', {
     title: 'Set Active Role',
-    description: 'Activate a role globally. Per-call overrides via persona_context({ role }) bypass this. Pass null to clear.',
+    description: 'Activate a role globally. Per-call overrides via voice_context({ role }) bypass this. Pass null to clear.',
     inputSchema: z.object({
         name: z.string().describe('Role name (e.g. "developer"). Must exist in bundled roles or dataDir/roles/<name>/ROLE.md.'),
     }),
@@ -729,15 +748,15 @@ server.registerTool('persona_role_set', {
     setActiveRole(config, name);
     return json({ active: name, bytes: content.length });
 });
-server.registerTool('persona_role_clear', {
+server.registerTool('voice_role_clear', {
     title: 'Clear Active Role',
-    description: 'Clear the active role. Subsequent persona_context calls with no role override will return soul-only context.',
+    description: 'Clear the active role. Subsequent voice_context calls with no role override will return soul-only context.',
     inputSchema: z.object({}),
 }, async () => {
     setActiveRole(config, null);
     return text('Active role cleared.');
 });
-server.registerTool('persona_role_read', {
+server.registerTool('voice_role_read', {
     title: 'Read Role',
     description: 'Read a role file. Returns the user override if present in dataDir/roles/<name>/ROLE.md, else the bundled default.',
     inputSchema: z.object({
@@ -747,7 +766,7 @@ server.registerTool('persona_role_read', {
     const content = readRole(config, name);
     return text(content || `Role "${name}" not found.`);
 });
-server.registerTool('persona_role_edit', {
+server.registerTool('voice_role_edit', {
     title: 'Edit Role',
     description: 'Override or create a custom role at dataDir/roles/<name>/ROLE.md. User overrides shadow bundled defaults.',
     inputSchema: z.object({
@@ -759,11 +778,11 @@ server.registerTool('persona_role_edit', {
     return text(`Wrote role "${name}" (${content.length} chars).`);
 });
 // ─────────────────────────────────────────────────────────────────────
-// JOURNAL (Persona's auto-derived notes — separate from user-edited soul)
+// JOURNAL (przm Voice's auto-derived notes — separate from user-edited soul)
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_journal_read', {
+server.registerTool('voice_journal_read', {
     title: 'Read Journal',
-    description: "Read Persona's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
+    description: "Read przm Voice's auto-derived notes (from applied evolution proposals). These layer onto the soul at prompt-build time but live in dataDir/journal/, never overwriting user-edited soul files.",
     inputSchema: z.object({
         file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file. Omit to read all three.'),
     }),
@@ -778,9 +797,9 @@ server.registerTool('persona_journal_read', {
         content: all,
     });
 });
-server.registerTool('persona_journal_clear', {
+server.registerTool('voice_journal_clear', {
     title: 'Clear Journal',
-    description: "Wipe Persona's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
+    description: "Wipe przm Voice's auto-derived notes without touching the user-edited soul. Use when the journal has accumulated learnings that no longer reflect the current relationship.",
     inputSchema: z.object({
         file: z.enum(['personality', 'style', 'skill']).optional().describe('Specific file to clear. Omit to clear all three.'),
     }),
@@ -791,7 +810,7 @@ server.registerTool('persona_journal_clear', {
 // ─────────────────────────────────────────────────────────────────────
 // PERSONALITY SYNTHESIS
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_synthesize', {
+server.registerTool('voice_synthesize', {
     title: 'Synthesize',
     description: 'Analyze user messages, extract communication traits, update soul files, and process through brain systems.',
     inputSchema: z.object({
@@ -828,7 +847,7 @@ server.registerTool('persona_synthesize', {
         changes: result.changes,
     });
 });
-server.registerTool('persona_analyze', {
+server.registerTool('voice_analyze', {
     title: 'Analyze Style',
     description: 'Analyze communication style without updating soul files. Emotional tone, Big Five, style vector.',
     inputSchema: z.object({
@@ -873,7 +892,7 @@ server.registerTool('persona_analyze', {
 // ─────────────────────────────────────────────────────────────────────
 // CONSOLIDATION
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('persona_consolidate', {
+server.registerTool('voice_consolidate', {
     title: 'Consolidate',
     description: 'Between-session consolidation: decay emotions, detect drift, check contradictions, promote patterns, sync Engram bridge.',
     inputSchema: z.object({}),
@@ -971,7 +990,7 @@ function checkAutoConsolidate() {
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('Persona MCP server v2.1.0 running on stdio');
+    console.error('przm Voice MCP server v1.0.0 running on stdio');
     console.error(`Data dir: ${config.dataDir}`);
     console.error(`Soul files: ${SOUL_FILE_NAMES.map(f => readSoulFile(config, f) ? f : `${f} (empty)`).join(', ')}`);
     const signals = loadSignals(config);

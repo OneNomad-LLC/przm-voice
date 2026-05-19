@@ -7,11 +7,17 @@ import { readAllSoulFiles } from './soul.js';
 import { getStorage } from './storage/index.js';
 
 /**
- * Procedural bridge — shared interchange between Persona and Engram.
+ * Procedural bridge — shared interchange between przm Voice and przm Memory.
  *
- * Persona exports applied evolution proposals as bridge rules.
- * Persona imports Engram-sourced rules as pending evolution proposals
+ * przm Voice exports applied evolution proposals as bridge rules.
+ * przm Voice imports Memory-sourced rules as pending evolution proposals
  * (user must apply/reject through the normal proposal flow).
+ *
+ * Note: the `source` discriminator on BridgeRule still uses the legacy
+ * `'engram' | 'persona'` literal so existing on-disk bridge files
+ * (~/.claude/procedural-bridge.json) and the parallel reader on the
+ * Memory side keep working. Same for the `engram:` / `persona:` rule-ID
+ * prefixes. These are wire-format identifiers, not brand strings.
  */
 
 // ── Interchange Format ─────────────────────────────────────────────
@@ -64,7 +70,7 @@ export function exportProposalsToBridge(config: PersonaConfig): number {
 
   const bridge = loadBridgeFile();
 
-  // Keep Engram-sourced rules, replace Persona-sourced rules
+  // Keep Memory-sourced rules, replace Voice-sourced rules
   const engramRules = bridge.rules.filter(r => r.source === 'engram');
   const personaRules: BridgeRule[] = applied.map(p => ({
     id: `persona:${p.id}`,
@@ -84,7 +90,7 @@ export function exportProposalsToBridge(config: PersonaConfig): number {
   return personaRules.length;
 }
 
-// ── Import Engram Rules → Persona Proposals ────────────────────────
+// ── Import Memory Rules → Voice Proposals ──────────────────────────
 
 export function importRulesFromBridge(
   config: PersonaConfig

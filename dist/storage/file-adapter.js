@@ -72,7 +72,7 @@ export class FileStorageAdapter {
     static SAFE_ROLE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,62}$/;
     assertSafeRoleName(name) {
         if (!FileStorageAdapter.SAFE_ROLE_NAME_RE.test(name)) {
-            throw new Error(`persona-mcp: file-adapter refused unsafe role name. Got: ${JSON.stringify(name).slice(0, 80)}`);
+            throw new Error(`przm-voice: file-adapter refused unsafe role name. Got: ${JSON.stringify(name).slice(0, 80)}`);
         }
     }
     rolePath(name) {
