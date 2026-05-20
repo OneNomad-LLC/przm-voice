@@ -1,5 +1,5 @@
 {
-  "name": "@onenomad/persona-bench-context-budget",
+  "name": "@onenomad/voice-bench-context-budget",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,9 +8,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@onenomad/persona-bench-shared": "workspace:*",
-    "@onenomad/persona-bench-personas": "workspace:*",
-    "@onenomad/persona-bench-style-recall": "workspace:*",
+    "@onenomad/voice-bench-shared": "workspace:*",
+    "@onenomad/voice-bench-personas": "workspace:*",
+    "@onenomad/voice-bench-style-recall": "workspace:*",
     "@onenomad/persona-mcp": "workspace:*"
   },
   "devDependencies": {

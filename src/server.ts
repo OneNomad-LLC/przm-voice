@@ -21,6 +21,7 @@ import { runConsolidation, recordSessionSummary } from './consolidation.js';
 import { detectSycophancyInAssistant } from './sycophancy.js';
 import type { SignalType, SessionState, BigFiveTraits, TraitState } from './types.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
+import { getVersion } from './version.js';
 
 const config = loadConfig();
 
@@ -155,7 +156,7 @@ function buildLayeredContext(
 const soulContext = buildLayeredContext();
 
 const server = new McpServer(
-  { name: 'przm-voice', version: '1.0.0' },
+  { name: 'przm-voice', version: getVersion() },
   {
     instructions: [
       '# przm Voice',
@@ -165,7 +166,7 @@ const server = new McpServer(
       '',
       'Record user reactions immediately with voice_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
       'After 5+ signals: run voice_synthesize.',
-      'If engram available: memory = WHAT, persona = HOW.',
+      'If przm-memory available: memory = WHAT, voice = HOW.',
     ].filter(Boolean).join('\n'),
   }
 );

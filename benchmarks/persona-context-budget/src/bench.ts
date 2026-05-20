@@ -24,15 +24,15 @@
 import {
   parseArgs, probeHardware, gitSha, writeReceipt, repoRoot,
   createPersonaDriver, type Receipt,
-} from '@onenomad/persona-bench-shared';
+} from '@onenomad/voice-bench-shared';
 import {
   PERSONA_NAMES, loadPersona, reactFor, preferenceScore,
   PROMPT_PAIRS, type PersonaName,
-} from '@onenomad/persona-bench-personas';
+} from '@onenomad/voice-bench-personas';
 import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
 import { buildSoulContext, readAllSoulFiles } from '@onenomad/persona-mcp/dist/soul.js';
 import { readAllJournalFiles } from '@onenomad/persona-mcp/dist/journal.js';
-import { predictPreference } from '@onenomad/persona-bench-style-recall';
+import { predictPreference } from '@onenomad/voice-bench-style-recall';
 
 const BUDGETS = [256, 512, 1024, 2048, 4096] as const;
 type Budget = typeof BUDGETS[number];

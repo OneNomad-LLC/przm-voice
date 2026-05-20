@@ -19,6 +19,7 @@ import { updateCognitiveLoad } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
 import { detectSycophancyInAssistant } from './sycophancy.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
+import { getVersion } from './version.js';
 const config = loadConfig();
 // Storage adapter must be wired before any of the module-level
 // evaluations below touch soul/signals/etc. Top-level await keeps
@@ -116,7 +117,7 @@ function buildLayeredContext(roleNameOverride, size = 'standard') {
     return buildSoulContext(files, { journal, role: roleContent, size });
 }
 const soulContext = buildLayeredContext();
-const server = new McpServer({ name: 'przm-voice', version: '1.0.0' }, {
+const server = new McpServer({ name: 'przm-voice', version: getVersion() }, {
     instructions: [
         '# przm Voice',
         'Adaptive personality. Honest, not agreeable. Style emerges from interactions.',
@@ -125,7 +126,7 @@ const server = new McpServer({ name: 'przm-voice', version: '1.0.0' }, {
         '',
         'Record user reactions immediately with voice_signal: correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction.',
         'After 5+ signals: run voice_synthesize.',
-        'If engram available: memory = WHAT, persona = HOW.',
+        'If przm-memory available: memory = WHAT, voice = HOW.',
     ].filter(Boolean).join('\n'),
 });
 // ─────────────────────────────────────────────────────────────────────

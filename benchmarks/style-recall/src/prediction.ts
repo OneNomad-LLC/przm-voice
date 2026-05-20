@@ -16,7 +16,7 @@
  * primary metric.
  */
 
-import { extractFeatures, type PersonaSpec } from '@onenomad/persona-bench-personas';
+import { extractFeatures, type PersonaSpec } from '@onenomad/voice-bench-personas';
 
 export interface AdaptationCues {
   prefersTerse: boolean;

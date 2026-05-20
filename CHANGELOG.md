@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-20
+
+### Added
+
+- **`engines.node = >=22.0.0`** in `package.json`. Matches the runtime
+  the project is actually developed and tested against; npm will now
+  warn at install time if Node 20 or earlier is in use.
+- **`src/version.ts`** — single source of truth for the MCP server's
+  self-reported version. Reads `package.json` once at startup and
+  caches the result. Replaces the hardcoded `'1.0.0'` string that had
+  to be hand-bumped in step with every release (and would have started
+  lying as of this release if it hadn't been replaced).
+
+### Changed
+
+- **Hooks renamed: `persona_*.sh` → `voice_*.sh`.** The two Claude Code
+  hooks under `hooks/` (`persona_precompact_hook.sh`,
+  `persona_stop_hook.sh`) now ship as `voice_precompact_hook.sh` and
+  `voice_stop_hook.sh`. Their bodies use the current `voice_signal` /
+  `voice_synthesize` / `memory-ingest` / `memory-diary-write` tool
+  names. The `hooks/README.md` rewrite documents the rename and
+  includes a migration note for anyone whose `settings.json` still
+  points at the old paths.
+- **Server instruction text** now references `przm-memory` and
+  `voice` instead of the deprecated `engram` / `persona` brand pair
+  (line: "If przm-memory available: memory = WHAT, voice = HOW.").
+- **Slash command tool references** under `.claude/commands/` updated
+  from `persona_*` to `voice_*` to match the renamed MCP tools. The
+  slash command file names (`persona-evolve.md` etc) are intentionally
+  unchanged so any user who already wired `/persona-evolve` into their
+  workflow keeps working.
+- **Workspace bench packages** renamed from
+  `@onenomad/persona-bench-*` to `@onenomad/voice-bench-*`. Affects 6
+  package.json files plus 5 `.ts` files of import statements plus 4
+  `--filter` invocations in the root `package.json` scripts. The
+  package directories themselves were not renamed; dir-name
+  consistency was not worth the lockfile/receipt churn this release.
+  Local dev must run `pnpm install` once after this update so the
+  workspace symlinks resolve to the new names; the bench scripts will
+  fail with "package not found" until that's done.
+
 ## [1.0.0] - 2026-05-19
 
 Initial public release on npm under the `przm` umbrella. Prior internal development happened under the `persona` / `@onenomad/persona-mcp` name; that package is deprecated in favor of this one. The repo, package, and version line all start fresh at 1.0.0.

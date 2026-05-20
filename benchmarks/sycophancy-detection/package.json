@@ -1,5 +1,5 @@
 {
-  "name": "@onenomad/persona-bench-sycophancy-detection",
+  "name": "@onenomad/voice-bench-sycophancy-detection",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@onenomad/persona-bench-shared": "workspace:*",
+    "@onenomad/voice-bench-shared": "workspace:*",
     "@onenomad/persona-mcp": "workspace:*"
   },
   "devDependencies": {

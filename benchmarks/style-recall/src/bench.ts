@@ -34,11 +34,11 @@ import {
   parseArgs, probeHardware, gitSha, writeReceipt, repoRoot,
   createPersonaDriver, probeOllama, pickModel, generate,
   type Receipt,
-} from '@onenomad/persona-bench-shared';
+} from '@onenomad/voice-bench-shared';
 import {
   PERSONA_NAMES, loadPersona, reactFor, preferenceScore,
   PROMPT_PAIRS, type PersonaName, type PersonaSpec,
-} from '@onenomad/persona-bench-personas';
+} from '@onenomad/voice-bench-personas';
 import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
 
 import { predictPreference } from './prediction.js';

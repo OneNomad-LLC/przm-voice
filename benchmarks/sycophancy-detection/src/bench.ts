@@ -30,7 +30,7 @@ import {
   writeReceipt,
   repoRoot,
   type Receipt,
-} from '@onenomad/persona-bench-shared';
+} from '@onenomad/voice-bench-shared';
 import {
   detectSycophancyInAssistant,
   type SycophancySignalType,
