@@ -18,7 +18,7 @@ import { detectEmotionalTone, emotionalValence, emotionalArousal, detectDyads, l
 import { updateBigFive, computeStyleVector, updateBaselineStyle, detectTechnicalDomain, blendStyleVectors } from './traits.js';
 import { updateCognitiveLoad, getVerbosityMultiplier } from './cognitive-load.js';
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
-import { detectSycophancyInAssistant } from './sycophancy.js';
+// V-012: detectSycophancyInAssistant moved to CLI subcommand; no longer imported here.
 import type { SignalType, SessionState, BigFiveTraits, TraitState } from './types.js';
 import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE, MAX_PINNED_FEEDBACK, MAX_PINNED_FEEDBACK_WARN } from './types.js';
 import { getVersion } from './version.js';
@@ -253,28 +253,13 @@ server.registerTool(
   }
 );
 
-server.registerTool(
-  'voice_detect_sycophancy',
-  {
-    title: 'Detect Sycophancy in Assistant Output',
-    description: 'Scan assistant text for known sycophantic patterns: flattery openers ("great question," "absolutely"), walk-backs without new evidence, position flips (pre-pushback X → post-pushback ¬X), and agreement cascades (N consecutive turns lacking disagreement). Rules-based detection — no LLM in the loop (a model evaluating its own sycophancy is contaminated by the same failure mode). Returns all firing signals sorted by confidence descending; one turn may fire multiple signals (e.g. flattery + walk-back).',
-    inputSchema: z.object({
-      currentAssistantText: z.string().describe('The just-produced assistant turn. Required.'),
-      priorAssistantText: z.string().optional().describe('The prior assistant turn. Required for walk-back and position-flip detection.'),
-      intermediateUserText: z.string().optional().describe('The user message between prior and current assistant turns. Used to gate walk-backs (presence of user-supplied evidence suppresses flattery and walk-back signals as grounded acknowledgment).'),
-      recentAssistantTurns: z.array(z.string()).optional().describe('Full assistant-turn history (oldest → newest, including current) for cascade detection.'),
-      cascadeThreshold: z.number().optional().describe('Number of consecutive agreement-without-disagreement turns required to fire the cascade signal. Default: 4.'),
-    }),
-  },
-  async (args) => {
-    const signals = detectSycophancyInAssistant(args);
-    return json({
-      signals,
-      count: signals.length,
-      hasSycophancy: signals.length > 0,
-    });
-  }
-);
+// V-012: voice_detect_sycophancy was removed as an MCP tool. The
+// detector ran self-evaluation by the agent being evaluated — a known
+// contamination mode the description itself acknowledged. The same
+// rules engine is now invoked out-of-band by the stop hook via the
+// CLI subcommand `przm-voice-mcp detect-sycophancy --transcript
+// <path>`, which records firing signals through the same recordSignal
+// path. The detector module (src/sycophancy.ts) is unchanged.
 
 // ─────────────────────────────────────────────────────────────────────
 // SIGNAL RECORDING
@@ -594,6 +579,87 @@ server.registerTool(
     profile.pinnedFeedback = pinned;
     saveProfileExternal(config, profile);
     return json({ unpinned: removed, counts: { pinned: pinned.length } });
+  }
+);
+
+// V-022: inline signal attribution. Given an optional topic, surface
+// the data shaping the active adaptation block so callers can see WHY
+// the agent is being told to be terse / extra careful / etc. Inspired
+// by ChatGPT Memory Sources (May 2026).
+server.registerTool(
+  'voice_explain',
+  {
+    title: 'Explain Adaptations',
+    description: "Show which signals, traits, and topic context shaped the current 'LEARNED ADAPTATIONS' block. Returns the adaptation lines plus the underlying inputs (recent signals, profile stats, big-five traits when reliable, session emotional state, pinned + recent feedback). Use to debug 'why is the agent acting this way' or to surface attribution to the user.",
+    inputSchema: z.object({
+      category: z.string().optional().describe('Optional topic context, same shape as voice_context({category}). When present, topic-specific adaptations and emotional associations are included.'),
+      recentSignalCount: z.number().int().min(0).max(50).optional().describe('How many recent signals to include in the response (default 10).'),
+    }),
+  },
+  async ({ category, recentSignalCount }) => {
+    const limit = recentSignalCount ?? 10;
+    const profile = loadProfile(config);
+    const traitState = loadTraitState(config);
+    const sessionState = getSessionState();
+    const signals = loadSignals(config);
+    const recentSignals = signals.slice(-limit).map(s => ({
+      type: s.type,
+      content: s.content.slice(0, 200),
+      timestamp: s.timestamp,
+    }));
+    const adaptationsBlock = getAdaptations(config, category);
+    const adaptationLines = adaptationsBlock
+      .split('\n')
+      .filter(line => line && !line.startsWith('---'));
+
+    const tone = sessionState.emotionalTone;
+    const dominantEmotion = (Object.entries(tone) as [string, number][])
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'neutral';
+
+    const topicAssoc = category
+      ? traitState.emotionalAssociations.find(
+          a => category.toLowerCase().includes(a.topic.toLowerCase())
+        )
+      : null;
+
+    return json({
+      adaptations: adaptationLines,
+      inputs: {
+        profile: {
+          stats: profile.stats,
+          stylePreferences: profile.stylePreferences,
+          pinnedFeedback: profile.pinnedFeedback ?? [],
+          recentFeedback: (profile.recentFeedback ?? []).slice(-3),
+        },
+        traits: traitState.bigFive.reliable
+          ? {
+              bigFive: traitState.bigFive,
+              domainTechnicalRatio: traitState.domainTechnicalRatio,
+            }
+          : { reliable: false, sampleCount: traitState.bigFive.sampleCount },
+        session: {
+          dominantEmotion,
+          emotionalTone: tone,
+          cognitiveLoad: sessionState.cognitiveLoad,
+          messageCount: sessionState.messageCount,
+        },
+        topic: category
+          ? {
+              category,
+              negativeAssociation:
+                topicAssoc && topicAssoc.valence < -0.3
+                  ? {
+                      topic: topicAssoc.topic,
+                      valence: topicAssoc.valence,
+                      exposureCount: topicAssoc.exposureCount,
+                    }
+                  : null,
+              perTopicPreference: profile.topicPreferences[category] ?? null,
+            }
+          : null,
+        recentSignals,
+      },
+    });
   }
 );
 
@@ -1179,6 +1245,7 @@ server.registerTool(
     ['voice_signal',             'persona_signal'],
     ['voice_profile',            'persona_profile'],
     ['voice_stats',              'persona_stats'],
+    ['voice_explain',            'persona_explain'],
     ['voice_proposals',          'persona_proposals'],
     ['voice_apply',              'persona_apply'],
     ['voice_reject',             'persona_reject'],

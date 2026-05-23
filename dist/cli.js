@@ -25,6 +25,9 @@ import { loadConfig } from './config.js';
 import { SOUL_FILE_NAMES } from './types.js';
 import { runLogin } from './auth/login.js';
 import { deleteCredentials } from './auth/credentials.js';
+import { detectSycophancyInAssistant, toSignalType } from './sycophancy.js';
+import { recordSignal } from './signals.js';
+import { createStorage, setStorage } from './storage/index.js';
 const HELP = `przm-voice-mcp — personality CLI
 
 Usage:
@@ -134,10 +137,109 @@ async function main() {
             await deleteCredentials();
             process.stdout.write('Logged out.\n');
             return;
+        case 'detect-sycophancy':
+            await runDetectSycophancy(rest);
+            return;
         default:
             process.stderr.write(`przm-voice-mcp: unknown subcommand "${sub}"\n\n${HELP}`);
             process.exit(2);
     }
+}
+// V-012: out-of-process sycophancy detection. The previous design
+// exposed voice_detect_sycophancy as an MCP tool the assistant called
+// on its own last turn — self-evaluation by the agent being evaluated
+// is contaminated by design. This subcommand is meant to be invoked
+// from voice_stop_hook.sh against the Claude Code transcript so the
+// detection runs out-of-band of the agent. Fired signals are recorded
+// via the same recordSignal path the MCP server uses.
+async function runDetectSycophancy(args) {
+    const opts = parseArgs({
+        args,
+        options: {
+            transcript: { type: 'string' },
+            'dry-run': { type: 'boolean' },
+        },
+        strict: true,
+        allowPositionals: false,
+    });
+    const transcriptPath = opts.values.transcript;
+    if (!transcriptPath)
+        fail('detect-sycophancy: --transcript <path> is required');
+    if (!existsSync(transcriptPath))
+        fail(`detect-sycophancy: transcript not found: ${transcriptPath}`);
+    const lines = readFileSync(transcriptPath, 'utf-8').trim().split('\n');
+    // Walk newest → oldest. Collect at most last 5 assistant turns + the
+    // immediate prior user turn between the last two assistant turns.
+    const assistantTurns = [];
+    let intermediateUserText;
+    let lookingForUserAfterFirstAssistant = false;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        let entry;
+        try {
+            entry = JSON.parse(lines[i]);
+        }
+        catch {
+            continue;
+        }
+        if (entry?.type === 'assistant') {
+            const text = stringifyAssistantContent(entry.message?.content);
+            if (text) {
+                assistantTurns.push(text);
+                if (assistantTurns.length === 1)
+                    lookingForUserAfterFirstAssistant = true;
+                if (assistantTurns.length >= 5)
+                    break;
+            }
+        }
+        else if (entry?.type === 'user' && lookingForUserAfterFirstAssistant) {
+            const c = entry.message?.content;
+            const isToolResult = Array.isArray(c) && c.some((p) => p?.type === 'tool_result');
+            if (!isToolResult) {
+                intermediateUserText = typeof c === 'string'
+                    ? c
+                    : Array.isArray(c)
+                        ? c.filter((p) => p?.type === 'text').map((p) => p.text).join('\n')
+                        : '';
+                lookingForUserAfterFirstAssistant = false;
+            }
+        }
+    }
+    if (assistantTurns.length === 0) {
+        process.stdout.write(JSON.stringify({ signals: [] }) + '\n');
+        return;
+    }
+    const detected = detectSycophancyInAssistant({
+        currentAssistantText: assistantTurns[0],
+        priorAssistantText: assistantTurns[1],
+        intermediateUserText,
+        recentAssistantTurns: assistantTurns.slice(0, 4),
+    });
+    if (detected.length === 0 || opts.values['dry-run']) {
+        process.stdout.write(JSON.stringify({ signals: detected }) + '\n');
+        return;
+    }
+    // Record each detected signal via the same path the MCP server uses.
+    const config = loadConfig();
+    const storage = await createStorage();
+    setStorage(storage);
+    for (const s of detected) {
+        recordSignal(config, toSignalType(s.type), s.excerpt, `sycophancy:${s.type} confidence=${s.confidence.toFixed(2)}`);
+    }
+    process.stdout.write(JSON.stringify({
+        signals: detected,
+        recorded: detected.length,
+    }) + '\n');
+}
+function stringifyAssistantContent(c) {
+    if (typeof c === 'string')
+        return c;
+    if (Array.isArray(c)) {
+        return c
+            .filter((p) => p?.type === 'text' && typeof p.text === 'string')
+            .map((p) => p.text)
+            .join('\n');
+    }
+    return '';
 }
 main().catch(err => {
     process.stderr.write(`przm-voice-mcp: ${err.stack ?? err}\n`);

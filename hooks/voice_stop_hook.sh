@@ -1,15 +1,42 @@
 #!/usr/bin/env bash
 # przm Voice auto-signal hook — runs on every Stop event.
-# Blocks every 10 human messages to remind about one-signal-per-reaction
-# recording. The per-reaction discipline matters: signals batched at
-# end-of-turn lose the precision the system depends on.
+#
+# Two responsibilities:
+# 1. (V-012) Run out-of-band sycophancy detection against the latest
+#    assistant turn. Self-evaluation by the agent being evaluated is
+#    contaminated by construction; running detection here keeps the
+#    agent out of the loop. Detected signals are recorded directly
+#    into the storage backend (same recordSignal path the MCP server
+#    uses) via the `przm-voice-mcp detect-sycophancy` subcommand.
+# 2. Every 10 user messages, block to remind the agent about
+#    per-reaction signal recording (one voice_signal call per
+#    reaction, never batched).
 
-# Claude Code passes { session_id, transcript_path, stop_hook_active }.
-# The transcript is a JSONL file at transcript_path — not inline — so we
-# read and parse the file. Tool-result turns are also stored as
-# type:'user' with role:'user'; we filter them out to count real user
-# prompts only.
-USER_MSG_COUNT=$(node -e "
+# Claude Code passes { session_id, transcript_path, stop_hook_active }
+# on stdin. Buffer the payload once so we can both inspect it and
+# forward it.
+PAYLOAD=$(cat)
+
+TRANSCRIPT_PATH=$(echo "$PAYLOAD" | node -e "
+  let data = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', c => data += c);
+  process.stdin.on('end', () => {
+    try { console.log(JSON.parse(data).transcript_path || ''); }
+    catch { console.log(''); }
+  });
+" 2>/dev/null)
+
+# Out-of-band sycophancy detection. Fires-and-forgets; we don't block
+# on its exit code. Any detected signals are recorded directly to
+# storage by the subcommand.
+if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+  przm-voice-mcp detect-sycophancy --transcript "$TRANSCRIPT_PATH" >/dev/null 2>&1 &
+fi
+
+# Count real user messages in the transcript (filtering tool-result
+# turns out).
+USER_MSG_COUNT=$(echo "$PAYLOAD" | node -e "
   let data = '';
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', c => data += c);

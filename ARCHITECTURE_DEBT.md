@@ -127,6 +127,43 @@ takes arrays directly, no JSON.parse.
 
 ---
 
+## Resolved (2026-05-23) — V-012: Move sycophancy detection out of MCP
+
+**Was:** `voice_detect_sycophancy` was an MCP tool exposed to the
+assistant being evaluated. The description itself acknowledged the
+self-evaluation contamination ("a model evaluating its own sycophancy
+is contaminated"). No automation called it; the agent could only
+call it on itself. Dead weight on the LLM surface and structurally
+unsound.
+
+**Resolved by:** `przm-voice-mcp detect-sycophancy --transcript
+<path>` CLI subcommand runs the existing `sycophancy.ts` rules over
+the Claude Code transcript out-of-band. `hooks/voice_stop_hook.sh`
+invokes it on every Stop event. Detected signals are recorded
+directly through `recordSignal()` — same storage path the MCP
+server uses. The MCP tool itself is removed; the legacy
+`persona_detect_sycophancy` alias is gone too.
+
+---
+
+## Resolved (2026-05-23) — V-022: `voice_explain` inline attribution
+
+**Was:** The signals + traits + profile + adaptations data was all
+on disk but the LLM had no way to ask "why is the adaptation block
+telling me this?" — leaving the agent (and user) to read source to
+debug. ChatGPT's Memory Sources shipped this pattern in May 2026; no
+adaptive-personality system had matched it.
+
+**Resolved by:** new `voice_explain({category?, recentSignalCount?})`
+tool. Returns the active adaptation lines plus the underlying inputs:
+profile stats + style preferences + pinned/recent feedback, Big Five
+traits (when reliable), session emotional + cognitive state, recent
+signals (up to 50), and topic-specific data when a category is
+supplied. Composes existing data — no new storage. Legacy
+`persona_explain` alias registered.
+
+---
+
 ## Resolved (2026-05-23) — V-011: Unify sycophancy threshold
 
 **Was:** `src/consolidation.ts:137` fired at 80%; `src/adaptations.ts:199`
