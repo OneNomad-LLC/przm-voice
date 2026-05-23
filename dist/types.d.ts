@@ -135,9 +135,11 @@ export interface EmotionalAssociation {
     arousal: number;
     exposureCount: number;
     lastSeen: string;
+    positiveStreak?: number;
 }
 export declare const DEFAULT_SESSION_STATE: SessionState;
 export declare const DEFAULT_TRAIT_STATE: TraitState;
+export declare const SYCOPHANCY_APPROVAL_THRESHOLD = 0.85;
 export interface PersonaConfig {
     dataDir: string;
     maxSignals: number;

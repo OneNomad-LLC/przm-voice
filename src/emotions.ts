@@ -285,6 +285,10 @@ export function saveTraitState(_config: PersonaConfig, state: TraitState): void 
  * Update emotional associations for a topic.
  * Negative associations form fast (amygdala one-shot learning),
  * positive associations form slowly (needs repeated exposure).
+ *
+ * V-015: positiveStreak counter prevents indefinite trapping in a
+ * negative association — three consecutive positive exposures on a
+ * previously-negative topic accelerate the positive learning rate.
  */
 export function updateEmotionalAssociation(
   state: TraitState,
@@ -295,9 +299,21 @@ export function updateEmotionalAssociation(
   const existing = state.emotionalAssociations.find(a => a.topic === topic);
 
   // Asymmetric learning rates: negative fast (0.8), positive slow (0.2)
-  const lr = valence < 0 ? 0.8 : 0.2;
+  let lr = valence < 0 ? 0.8 : 0.2;
 
   if (existing) {
+    // V-015: track consecutive positive exposures on a previously-negative
+    // association. Three in a row accelerates positive learning to 0.6,
+    // letting the topic actually escape the negative trap.
+    if (valence > 0 && existing.valence < 0) {
+      existing.positiveStreak = (existing.positiveStreak ?? 0) + 1;
+      if (existing.positiveStreak >= 3) {
+        lr = 0.6;
+      }
+    } else {
+      existing.positiveStreak = 0;
+    }
+
     existing.valence = existing.valence * (1 - lr) + valence * lr;
     existing.arousal = existing.arousal * (1 - lr) + arousal * lr;
     existing.exposureCount++;
@@ -309,14 +325,27 @@ export function updateEmotionalAssociation(
       arousal,
       exposureCount: 1,
       lastSeen: new Date().toISOString(),
+      positiveStreak: 0,
     });
   }
 
-  // Cap at 50 associations, drop oldest low-exposure ones
+  // V-014: cap at 50 associations. Score each by exposure × strength × recency
+  // so a single strong negative event survives over many low-importance pings.
   if (state.emotionalAssociations.length > 50) {
-    state.emotionalAssociations.sort((a, b) => b.exposureCount - a.exposureCount);
+    const now = Date.now();
+    state.emotionalAssociations.sort((a, b) => scoreAssoc(b, now) - scoreAssoc(a, now));
     state.emotionalAssociations = state.emotionalAssociations.slice(0, 50);
   }
+}
+
+/**
+ * V-014: composite eviction score blending exposure count, absolute valence,
+ * and recency. Recency normalized to a 30-day half-life.
+ */
+function scoreAssoc(a: EmotionalAssociation, now: number): number {
+  const ageDays = Math.max(0, (now - Date.parse(a.lastSeen)) / 86_400_000);
+  const recencyWeight = Math.max(0, 1 - ageDays / 30);
+  return a.exposureCount * 0.4 + Math.abs(a.valence) * 0.4 + recencyWeight * 0.2;
 }
 
 /**

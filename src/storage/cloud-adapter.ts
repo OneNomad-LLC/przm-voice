@@ -1,6 +1,10 @@
 import { dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 import type {
   BehavioralProfile,
   BehavioralSignal,
@@ -221,12 +225,43 @@ export class CloudStorageAdapter implements StorageAdapter {
     path: string,
     body?: unknown,
   ): Promise<Response> {
-    const init: RequestInit = {
-      method,
-      headers: this.headers(),
-    };
-    if (body !== undefined) init.body = JSON.stringify(body);
-    return await this.fetchImpl(this.url(path), init);
+    // V-009: AbortController-backed timeout + bounded retry on 5xx.
+    // A hung upstream used to stall the linear write-queue chain
+    // indefinitely; a 10s budget plus a single retry keeps the chain
+    // moving.
+    const timeoutMs = Number(process.env.PRZM_VOICE_CLOUD_TIMEOUT_MS ?? 10_000);
+    const maxAttempts = 2;
+
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const init: RequestInit = {
+        method,
+        headers: this.headers(),
+        signal: controller.signal,
+      };
+      if (body !== undefined) init.body = JSON.stringify(body);
+      try {
+        const res = await this.fetchImpl(this.url(path), init);
+        clearTimeout(timer);
+        // Retry once on 5xx; everything else (including 4xx) is returned
+        // to the caller for normal handling.
+        if (res.status >= 500 && res.status < 600 && attempt === 0) {
+          await sleep(150 * (attempt + 1));
+          continue;
+        }
+        return res;
+      } catch (err) {
+        clearTimeout(timer);
+        lastErr = err;
+        if (attempt === 0) {
+          await sleep(150);
+          continue;
+        }
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
   }
 
   // ── Loaders ─────────────────────────────────────────────────────

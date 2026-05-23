@@ -34,13 +34,13 @@ function assert(cond: unknown, msg: string): asserts cond {
 // to produce non-empty personality, style, and skill output (thresholds:
 // personality ≥ 5 messages, style ≥ 3, skill ≥ 5).
 const SAMPLE_MESSAGES = [
-  'Fix the bug in the auth middleware — it's rejecting valid JWTs',
+  "Fix the bug in the auth middleware — it's rejecting valid JWTs",
   'The migration ran fine but rollback is broken',
-  'Just give me the SQL, I'll handle the explanation',
+  "Just give me the SQL, I'll handle the explanation",
   'This is wrong. The index needs to be composite, not single-column',
   'Show me the query plan before we go further',
   'Ok that works. Ship it.',
-  'Don\'t add abstractions I didn\'t ask for',
+  "Don't add abstractions I didn't ask for",
   'How does the retry logic interact with the connection pool?',
   'Looks good — PR is up',
   'The approach is backwards. Start from the schema, not the ORM',

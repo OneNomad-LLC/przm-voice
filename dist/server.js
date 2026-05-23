@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { loadConfig } from './config.js';
 import { createStorage, setStorage } from './storage/index.js';
 import { readSoulFile, readAllSoulFiles, writeSoulFile, initSoulFiles, buildSoulContext } from './soul.js';
-import { readAllJournalFiles, clearJournal } from './journal.js';
+import { readAllJournalFiles, clearJournal, removeJournalFragment } from './journal.js';
 import { listRoles, readRole, writeRole, getActiveRole, setActiveRole } from './role.js';
 import { listSoulPresets, readSoulPreset, applySoulPreset } from './soul-presets.js';
 import { recordSignal, loadSignals, getSignalCounts, detectSignals } from './signals.js';
@@ -731,53 +731,50 @@ server.registerTool('voice_soul_preset_apply', {
 // ─────────────────────────────────────────────────────────────────────
 // ROLE LAYER (domain overlays — developer, designer, pm, writer, researcher)
 // ─────────────────────────────────────────────────────────────────────
-server.registerTool('voice_role_list', {
-    title: 'List Roles',
-    description: 'List bundled and user-defined roles. Roles are domain overlays (developer, designer, pm…) layered on top of the soul at prompt-build time.',
-    inputSchema: z.object({}),
-}, async () => {
-    const roles = listRoles(config);
-    const active = getActiveRole(config);
-    return json({
-        active,
-        roles: roles.map(r => ({
-            name: r.name,
-            active: r.name === active,
-            bytes: r.content.length,
-            preview: r.content.split('\n').slice(0, 2).join(' ').slice(0, 120),
-        })),
-    });
-});
-server.registerTool('voice_role_set', {
-    title: 'Set Active Role',
-    description: 'Activate a role globally. Per-call overrides via voice_context({ role }) bypass this. Pass null to clear.',
+// V-013: collapsed from 5 tools (list / set / clear / read / edit) to 3
+// (get / set / edit). voice_role_get covers both list and read via the
+// optional name; voice_role_set takes string | null to cover both set
+// and clear (the schema previously rejected null while the description
+// promised it would clear, which was unrunnable as written).
+server.registerTool('voice_role_get', {
+    title: 'Get Role(s)',
+    description: 'No `name` → list all bundled + user-defined roles with active marker. With `name` → return the role file content. Roles are domain overlays (developer, designer, pm…) layered on top of the soul at prompt-build time.',
     inputSchema: z.object({
-        name: z.string().describe('Role name (e.g. "developer"). Must exist in bundled roles or dataDir/roles/<name>/ROLE.md.'),
+        name: z.string().optional().describe('Optional role name. Omit to list all roles; pass a name to read its content.'),
     }),
 }, async ({ name }) => {
+    if (!name) {
+        const roles = listRoles(config);
+        const active = getActiveRole(config);
+        return json({
+            active,
+            roles: roles.map(r => ({
+                name: r.name,
+                active: r.name === active,
+                bytes: r.content.length,
+                preview: r.content.split('\n').slice(0, 2).join(' ').slice(0, 120),
+            })),
+        });
+    }
+    const content = readRole(config, name);
+    return text(content || `Role "${name}" not found.`);
+});
+server.registerTool('voice_role_set', {
+    title: 'Set or Clear Active Role',
+    description: 'Activate a role globally, or clear by passing null. Per-call overrides via voice_context({ role }) bypass this.',
+    inputSchema: z.object({
+        name: z.string().nullable().describe('Role name to activate (e.g. "developer"), or null to clear.'),
+    }),
+}, async ({ name }) => {
+    if (name === null) {
+        setActiveRole(config, null);
+        return json({ active: null });
+    }
     const content = readRole(config, name);
     if (!content)
         return json({ error: 'unknown_role', name });
     setActiveRole(config, name);
     return json({ active: name, bytes: content.length });
-});
-server.registerTool('voice_role_clear', {
-    title: 'Clear Active Role',
-    description: 'Clear the active role. Subsequent voice_context calls with no role override will return soul-only context.',
-    inputSchema: z.object({}),
-}, async () => {
-    setActiveRole(config, null);
-    return text('Active role cleared.');
-});
-server.registerTool('voice_role_read', {
-    title: 'Read Role',
-    description: 'Read a role file. Returns the user override if present in dataDir/roles/<name>/ROLE.md, else the bundled default.',
-    inputSchema: z.object({
-        name: z.string().describe('Role name.'),
-    }),
-}, async ({ name }) => {
-    const content = readRole(config, name);
-    return text(content || `Role "${name}" not found.`);
 });
 server.registerTool('voice_role_edit', {
     title: 'Edit Role',
@@ -819,6 +816,20 @@ server.registerTool('voice_journal_clear', {
 }, async ({ file }) => {
     const cleared = clearJournal(config, file);
     return text(`Cleared ${cleared} journal file(s).`);
+});
+// V-020: surgical removal — when a single applied proposal turns out to
+// be wrong, callers want to drop that specific guidance without losing
+// the rest of the journal.
+server.registerTool('voice_journal_remove', {
+    title: 'Remove Journal Fragment',
+    description: "Remove a specific text fragment from a journal file. Use when a single applied proposal needs to be undone without wiping the rest. The fragment must match exactly. Soul files are not touched.",
+    inputSchema: z.object({
+        file: z.enum(['personality', 'style', 'skill']).describe('Which journal file to edit.'),
+        fragment: z.string().describe('Exact substring to remove. Whitespace and casing must match.'),
+    }),
+}, async ({ file, fragment }) => {
+    removeJournalFragment(config, file, fragment);
+    return json({ removed: true, file, fragmentBytes: fragment.length });
 });
 // ─────────────────────────────────────────────────────────────────────
 // PERSONALITY SYNTHESIS
@@ -965,11 +976,14 @@ server.registerTool('voice_consolidate', {
         ['voice_soul_presets_list', 'persona_soul_presets_list'],
         ['voice_soul_preset_read', 'persona_soul_preset_read'],
         ['voice_soul_preset_apply', 'persona_soul_preset_apply'],
-        ['voice_role_list', 'persona_role_list'],
-        ['voice_role_clear', 'persona_role_clear'],
-        ['voice_role_read', 'persona_role_read'],
+        // V-013: voice_role_list / _clear / _read were collapsed into _get and
+        // _set (with nullable name). The persona_* aliases for the deleted
+        // variants are intentionally NOT kept — callers using them get
+        // tool-not-found and migrate to voice_role_get / voice_role_set.
+        ['voice_role_get', 'persona_role_get'],
         ['voice_role_edit', 'persona_role_edit'],
         ['voice_journal_read', 'persona_journal_read'],
+        ['voice_journal_remove', 'persona_journal_remove'],
         ['voice_synthesize', 'persona_synthesize'],
         ['voice_analyze', 'persona_analyze'],
     ];

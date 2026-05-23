@@ -127,6 +127,120 @@ takes arrays directly, no JSON.parse.
 
 ---
 
+## Resolved (2026-05-23) — V-011: Unify sycophancy threshold
+
+**Was:** `src/consolidation.ts:137` fired at 80%; `src/adaptations.ts:199`
+fired at 85%. Approval rates between 80-85% silently got a consolidation
+warning but no in-prompt self-check.
+
+**Resolved by:** single `SYCOPHANCY_APPROVAL_THRESHOLD` constant in
+`src/types.ts` consumed by both callsites. Picked 85% — slightly more
+conservative, matches the in-prompt directive timing. Warning prose
+reads the constant so the displayed percentage stays in sync if the
+threshold ever changes.
+
+---
+
+## Resolved (2026-05-23) — V-009: Cloud adapter fetch timeout + retry
+
+**Was:** `src/storage/cloud-adapter.ts` `request()` fired `fetch` with no
+`AbortSignal`. A hung upstream stalled the linear write-queue chain
+indefinitely.
+
+**Resolved by:** AbortController-backed timeout (default 10s, override
+via `PRZM_VOICE_CLOUD_TIMEOUT_MS`). Single retry on 5xx or transport
+failure with a small backoff. Failed requests now propagate through the
+write-queue error path (V-008) rather than hanging the queue.
+
+---
+
+## Resolved (2026-05-23) — V-010: Dedup proposals against applied + prune
+
+**Was:** `src/evolution.ts:46` deduped only against `pending` proposals.
+Re-generation of the same content after a proposal was applied was
+fine, accumulating duplicate guidance in the journal. Applied/rejected
+entries were never pruned.
+
+**Resolved by:** dedupe set now spans `pending` and `applied`; only
+rejected proposals are eligible for re-proposal. `pruneOldProposals()`
+called from the cross-session consolidation pass drops applied/rejected
+entries older than 90 days. Pending proposals never expire.
+
+---
+
+## Resolved (2026-05-23) — V-013: Collapse role family from 5 tools to 3
+
+**Was:** `voice_role_list`, `voice_role_set`, `voice_role_clear`,
+`voice_role_read`, `voice_role_edit` — five tools where three would do.
+`voice_role_set`'s schema rejected null while the description said null
+clears (unrunnable as written).
+
+**Resolved by:** consolidated to three: `voice_role_get({name?:
+string})` (list when no name, read when named), `voice_role_set({name:
+string | null})` (set when string, clear when null — schema now
+matches), `voice_role_edit` unchanged. Legacy `persona_role_list /
+_clear / _read` aliases removed; callers migrate to `voice_role_get /
+voice_role_set`. `persona_role_edit` alias kept.
+
+---
+
+## Resolved (2026-05-23) — V-014 + V-015: Emotion eviction + counterbalance
+
+**Was:**
+- `src/emotions.ts:316-319` evicted by `exposureCount DESC`. A single
+  strong negative event for a new topic was evicted in favor of a
+  low-importance topic seen many times. Contradicted the amygdala
+  one-shot learning model the README cites.
+- Asymmetric (0.8 neg / 0.2 pos) + 7-day decay trapped the system in
+  negative associations for weeks. Once a topic encoded valence ≈ -0.64,
+  positive evidence needed ~5-10 exposures to overcome.
+
+**Resolved by:**
+- Eviction now scores each association by `exposureCount * 0.4 +
+  |valence| * 0.4 + recencyWeight * 0.2` (30-day recency half-life).
+  Top 50 by score survive.
+- `EmotionalAssociation.positiveStreak` tracks consecutive positive
+  exposures on previously-negative topics. Three in a row accelerates
+  the positive learning rate to 0.6, letting the system actually escape
+  the negative trap.
+
+---
+
+## Resolved (2026-05-23) — V-019: Trim hook over-blocking + per-reaction prose
+
+**Was:**
+- `hooks/voice_precompact_hook.sh` always blocked AND referenced
+  `memory-ingest` / `memory-diary-write` (cross-project bleed).
+  PreCompact is high-traffic; combined with `przm-memory`'s PreCompact
+  hook the agent saw two big walls of text sequentially.
+- `hooks/voice_stop_hook.sh:41` text "Record any user reactions from
+  the last few exchanges" actively encouraged batching, violating the
+  per-reaction signal rule.
+
+**Resolved by:**
+- PreCompact hook now approves silently when fewer than 5 real user
+  messages have accumulated. Above the threshold it blocks with a tight
+  message that no longer mentions sibling projects.
+- Stop hook reworded to "Walk through them one at a time. Call
+  voice_signal SEPARATELY for each one — never batch reactions in a
+  single call." Explicitly teaches the per-reaction discipline.
+
+---
+
+## Resolved (2026-05-23) — V-020: `voice_journal_remove` tool
+
+**Was:** `src/journal.ts:61` already exported `removeJournalFragment`
+but it wasn't surfaced as an MCP tool. Callers' only options were
+`voice_journal_clear` (wipe the whole file) or leave the journal alone.
+When a single applied proposal turned out wrong, the user had to clear
+and re-apply everything else.
+
+**Resolved by:** new `voice_journal_remove({file, fragment})` tool
+calls the existing helper. Legacy `persona_journal_remove` alias
+registered.
+
+---
+
 ## How to add an entry
 
 Pick the next `DEBT-NNN` number. Stick to this skeleton:

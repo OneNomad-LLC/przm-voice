@@ -63,6 +63,12 @@ export const DEFAULT_TRAIT_STATE = {
     lastConsolidation: new Date().toISOString(),
     domainTechnicalRatio: 0,
 };
+// ── Sycophancy threshold ────────────────────────────────────────────
+// Single canonical threshold used by both adaptations.ts (in-prompt
+// self-check) and consolidation.ts (warning on consolidation report).
+// Keeping one constant prevents the 80%/85% split that silently lets
+// 80-85% approval rates get a consolidation warning but no live check.
+export const SYCOPHANCY_APPROVAL_THRESHOLD = 0.85;
 export const DEFAULT_CONFIG = {
     dataDir: '',
     maxSignals: 500,

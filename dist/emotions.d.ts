@@ -40,6 +40,10 @@ export declare function saveTraitState(_config: PersonaConfig, state: TraitState
  * Update emotional associations for a topic.
  * Negative associations form fast (amygdala one-shot learning),
  * positive associations form slowly (needs repeated exposure).
+ *
+ * V-015: positiveStreak counter prevents indefinite trapping in a
+ * negative association — three consecutive positive exposures on a
+ * previously-negative topic accelerate the positive learning rate.
  */
 export declare function updateEmotionalAssociation(state: TraitState, topic: string, valence: number, arousal: number): void;
 /**

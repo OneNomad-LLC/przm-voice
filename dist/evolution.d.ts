@@ -24,3 +24,11 @@ export declare function rejectProposal(config: PersonaConfig, proposalId: string
     success: boolean;
     message: string;
 };
+/**
+ * V-010: prune applied/rejected proposals older than `maxAgeDays` days.
+ * Called from the cross-session consolidation pass. Pending proposals
+ * are always kept regardless of age.
+ *
+ * Returns the number of proposals removed.
+ */
+export declare function pruneOldProposals(config: PersonaConfig, maxAgeDays: number): number;

@@ -1,4 +1,4 @@
-import { DEFAULT_SESSION_STATE } from './types.js';
+import { DEFAULT_SESSION_STATE, SYCOPHANCY_APPROVAL_THRESHOLD } from './types.js';
 import { loadProfile } from './profile.js';
 import { loadTraitState } from './emotions.js';
 import { computeTargetStyle } from './traits.js';
@@ -175,7 +175,7 @@ export function getAdaptations(config, category) {
         lines.push('User frequently corrects responses. Double-check accuracy before responding.');
     }
     // ── Sycophancy resistance ────────────────────────────────────
-    if (profile.stats.approvalRate > 0.85 && profile.stats.totalSignals > 30) {
+    if (profile.stats.approvalRate > SYCOPHANCY_APPROVAL_THRESHOLD && profile.stats.totalSignals > 30) {
         lines.push('SELF-CHECK: Approval rate is very high. Make sure you\'re being honest, not just agreeable. Challenge assumptions when warranted.');
     }
     if (lines.length === 0)

@@ -1,5 +1,5 @@
 import type { BehavioralProfile, PersonaConfig, SessionState, TraitState } from './types.js';
-import { DEFAULT_SESSION_STATE, DEFAULT_TRAIT_STATE } from './types.js';
+import { DEFAULT_SESSION_STATE, DEFAULT_TRAIT_STATE, SYCOPHANCY_APPROVAL_THRESHOLD } from './types.js';
 import { loadProfile } from './profile.js';
 import { loadTraitState } from './emotions.js';
 import { computeTargetStyle } from './traits.js';
@@ -196,7 +196,7 @@ export function getAdaptations(config: PersonaConfig, category?: string): string
   }
 
   // ── Sycophancy resistance ────────────────────────────────────
-  if (profile.stats.approvalRate > 0.85 && profile.stats.totalSignals > 30) {
+  if (profile.stats.approvalRate > SYCOPHANCY_APPROVAL_THRESHOLD && profile.stats.totalSignals > 30) {
     lines.push('SELF-CHECK: Approval rate is very high. Make sure you\'re being honest, not just agreeable. Challenge assumptions when warranted.');
   }
 

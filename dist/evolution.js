@@ -30,7 +30,11 @@ export function generateProposals(config, signals) {
     const recent = getRecentSignals(signals, 14);
     const counts = getSignalCounts(recent);
     const existing = loadProposals(config);
-    const pendingTargets = new Set(existing.filter(p => p.status === 'pending').map(p => p.content));
+    // V-010: dedupe against both pending AND applied — re-generating the same
+    // guidance after the user has already applied it once just pollutes the
+    // journal. Only rejected proposals are eligible for re-proposal.
+    const dedupeTargets = new Set(existing.filter(p => p.status !== 'rejected').map(p => p.content));
+    const pendingTargets = dedupeTargets;
     const proposals = [];
     // ── Verbosity adjustments ─────────────────────────────────────
     if ((counts.elaboration ?? 0) >= 3 && profile.stylePreferences.verbosity > 0.3) {
@@ -138,6 +142,29 @@ export function rejectProposal(config, proposalId) {
     proposals[idx].status = 'rejected';
     saveProposals(config, proposals);
     return { success: true, message: 'Proposal rejected.' };
+}
+/**
+ * V-010: prune applied/rejected proposals older than `maxAgeDays` days.
+ * Called from the cross-session consolidation pass. Pending proposals
+ * are always kept regardless of age.
+ *
+ * Returns the number of proposals removed.
+ */
+export function pruneOldProposals(config, maxAgeDays) {
+    const proposals = loadProposals(config);
+    const cutoff = Date.now() - maxAgeDays * 86_400_000;
+    const kept = proposals.filter(p => {
+        if (p.status === 'pending')
+            return true;
+        const ts = Date.parse(p.createdAt ?? '');
+        if (!Number.isFinite(ts))
+            return true; // missing timestamp — keep it
+        return ts >= cutoff;
+    });
+    const removed = proposals.length - kept.length;
+    if (removed > 0)
+        saveProposals(config, kept);
+    return removed;
 }
 // ── Helpers ─────────────────────────────────────────────────────────
 function makeProposal(type, target, action, content, rationale, evidence, confidence) {

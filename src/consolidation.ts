@@ -1,11 +1,12 @@
 import type { PersonaConfig, TraitState, SessionState } from './types.js';
-import { DEFAULT_TRAIT_STATE } from './types.js';
+import { DEFAULT_TRAIT_STATE, SYCOPHANCY_APPROVAL_THRESHOLD } from './types.js';
 import { loadTraitState, saveTraitState } from './emotions.js';
 import { loadSignals, getRecentSignals, getSignalCounts } from './signals.js';
 import { loadProfile } from './profile.js';
 import { readAllSoulFiles, writeSoulFile } from './soul.js';
 import { getStorage } from './storage/index.js';
 import type { SessionSummary as AdapterSessionSummary } from './storage/index.js';
+import { pruneOldProposals } from './evolution.js';
 
 /**
  * Between-session consolidation, modeled after sleep consolidation
@@ -134,9 +135,9 @@ export function runConsolidation(config: PersonaConfig): ConsolidationResult {
   }
 
   // Sycophancy check: if approval rate is suspiciously high
-  if (profile.stats.approvalRate > 0.8 && profile.stats.totalSignals > 30) {
+  if (profile.stats.approvalRate > SYCOPHANCY_APPROVAL_THRESHOLD && profile.stats.totalSignals > 30) {
     result.contradictions.push(
-      'Warning: approval rate is above 80%. Check for sycophancy drift. ' +
+      `Warning: approval rate is above ${Math.round(SYCOPHANCY_APPROVAL_THRESHOLD * 100)}%. Check for sycophancy drift. ` +
       'The agent may be optimizing for agreement over honesty.'
     );
   }
@@ -145,6 +146,9 @@ export function runConsolidation(config: PersonaConfig): ConsolidationResult {
   traitState.sessionsAnalyzed = history.length;
   traitState.lastConsolidation = new Date().toISOString();
   saveTraitState(config, traitState);
+
+  // ── 5. Prune old applied/rejected proposals (V-010) ───────
+  pruneOldProposals(config, 90);
 
   return result;
 }

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # przm Voice auto-signal hook — runs on every Stop event.
-# Blocks every 10 human messages to force behavioral signal recording.
-# Ensures behavioral data is captured for personality evolution.
+# Blocks every 10 human messages to remind about one-signal-per-reaction
+# recording. The per-reaction discipline matters: signals batched at
+# end-of-turn lose the precision the system depends on.
 
 # Claude Code passes { session_id, transcript_path, stop_hook_active }.
 # The transcript is a JSONL file at transcript_path — not inline — so we
@@ -38,7 +39,7 @@ USER_MSG_COUNT=$(node -e "
 USER_MSG_COUNT=${USER_MSG_COUNT:-0}
 
 if [ "$USER_MSG_COUNT" -gt 0 ] && [ $((USER_MSG_COUNT % 10)) -eq 0 ]; then
-  echo '{"decision":"block","reason":"🎭 przm Voice checkpoint (every 10 messages). Before continuing:\n1. voice_signal: Record any user reactions from the last few exchanges (correction, approval, frustration, elaboration, simplification, praise, explicit_feedback, code_accepted, code_rejected, style_correction)\n2. If 5+ signals recorded this session, run voice_synthesize to update the profile\n\nDo this NOW, then continue."}'
+  echo '{"decision":"block","reason":"🎭 przm Voice checkpoint (every 10 messages). Did you miss recording any user reactions from the last 10 turns? Walk through them one at a time and call voice_signal SEPARATELY for each one — never batch reactions in a single call. The per-reaction granularity is what the signal pipeline depends on. After signals are recorded, if you have 5+ this session, run voice_synthesize."}'
 else
   echo '{"decision":"approve"}'
 fi
