@@ -18,17 +18,17 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { PersonaConfig, BehavioralSignal, SignalType } from '@onenomad/persona-mcp/dist/types.js';
-import { DEFAULT_CONFIG } from '@onenomad/persona-mcp/dist/types.js';
-import { FileStorageAdapter } from '@onenomad/persona-mcp/dist/storage/file-adapter.js';
-import { setStorage } from '@onenomad/persona-mcp/dist/storage/index.js';
-import { initSoulFiles, readAllSoulFiles } from '@onenomad/persona-mcp/dist/soul.js';
-import { recordSignal, loadSignals, detectSignals } from '@onenomad/persona-mcp/dist/signals.js';
-import { rebuildProfile, loadProfile } from '@onenomad/persona-mcp/dist/profile.js';
-import { updateSoulFromSynthesis, analyzeUserMessages } from '@onenomad/persona-mcp/dist/synthesis.js';
-import { getAdaptations, setSessionState } from '@onenomad/persona-mcp/dist/adaptations.js';
-import { generateProposals, loadProposals } from '@onenomad/persona-mcp/dist/evolution.js';
-import { DEFAULT_SESSION_STATE } from '@onenomad/persona-mcp/dist/types.js';
+import type { PersonaConfig, BehavioralSignal, SignalType } from '@onenomad/przm-voice/dist/types.js';
+import { DEFAULT_CONFIG } from '@onenomad/przm-voice/dist/types.js';
+import { FileStorageAdapter } from '@onenomad/przm-voice/dist/storage/file-adapter.js';
+import { setStorage } from '@onenomad/przm-voice/dist/storage/index.js';
+import { initSoulFiles, readAllSoulFiles } from '@onenomad/przm-voice/dist/soul.js';
+import { recordSignal, loadSignals, detectSignals } from '@onenomad/przm-voice/dist/signals.js';
+import { rebuildProfile, loadProfile } from '@onenomad/przm-voice/dist/profile.js';
+import { updateSoulFromSynthesis, analyzeUserMessages } from '@onenomad/przm-voice/dist/synthesis.js';
+import { getAdaptations, setSessionState } from '@onenomad/przm-voice/dist/adaptations.js';
+import { generateProposals, loadProposals } from '@onenomad/przm-voice/dist/evolution.js';
+import { DEFAULT_SESSION_STATE } from '@onenomad/przm-voice/dist/types.js';
 
 export interface PersonaDriver {
   /** Tmpdir backing the driver. Deleted by close(). */

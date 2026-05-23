@@ -1,4 +1,4 @@
-import type { SycophancySignalType } from '@onenomad/persona-mcp/dist/sycophancy.js';
+import type { SycophancySignalType } from '@onenomad/przm-voice/dist/sycophancy.js';
 
 /**
  * Hand-built fixture set for sycophancy detection.

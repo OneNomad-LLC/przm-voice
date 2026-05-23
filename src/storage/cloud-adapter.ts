@@ -168,6 +168,8 @@ export class CloudStorageAdapter implements StorageAdapter {
   private readonly cache: CacheState;
   private writeQueue: Promise<void> = Promise.resolve();
   private initialized = false;
+  /** Most recent write-queue error, if any. */
+  lastWriteError: Error | null = null;
 
   constructor(opts: CloudAdapterOptions) {
     this.apiUrl = opts.apiUrl.replace(/\/+$/, '');
@@ -343,9 +345,17 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   private enqueue(work: () => Promise<void>): void {
     this.writeQueue = this.writeQueue.then(work, work);
-    this.writeQueue = this.writeQueue.catch((err) => {
-      console.error('[persona-cloud] write failed:', err);
+    this.writeQueue = this.writeQueue.catch((err: unknown) => {
+      this.lastWriteError = err instanceof Error ? err : new Error(String(err));
+      console.error('[przm-voice-cloud] write failed:', err);
     });
+  }
+
+  /** Returns the most recent write-queue error, or null if all writes succeeded. */
+  healthCheck(): { lastWriteError: string | null } {
+    return {
+      lastWriteError: this.lastWriteError ? this.lastWriteError.message : null,
+    };
   }
 
   private upsertState(): void {

@@ -1,7 +1,7 @@
 import type { BehavioralSignal, PersonaConfig, StylePreferences } from './types.js';
 import { loadSignals } from './signals.js';
 import { loadProfile } from './profile.js';
-import { writeSoulFile, readSoulFile } from './soul.js';
+import { appendJournal } from './journal.js';
 
 /**
  * Personality synthesis -- builds soul files organically from user interactions.
@@ -369,29 +369,27 @@ export function updateSoulFromSynthesis(
   const profile = loadProfile(config);
   const synth = synthesizePersonality(config, traits, profile);
 
-  // Only write if we have meaningful content
+  // Route synthesized content to the journal, never to user-edited soul.
+  // Soul is user territory; the journal is przm-voice territory.
+  // buildSoulContext(full) merges both at prompt-build time so the LLM
+  // sees the derived traits without the user's hand-edits being clobbered.
+  // Each synthesis run appends a timestamped block; voice_journal_clear
+  // or voice_consolidate prunes stale entries.
+  const ts = new Date().toISOString();
+
   if (synth.personality && synth.personality.length > 30) {
-    const current = readSoulFile(config, 'personality');
-    if (synth.personality !== current) {
-      writeSoulFile(config, 'personality', synth.personality);
-      changes.push('personality updated');
-    }
+    appendJournal(config, 'personality', `<!-- synthesis:${ts} -->\n${synth.personality}`);
+    changes.push('personality journaled');
   }
 
   if (synth.style && synth.style.length > 30) {
-    const current = readSoulFile(config, 'style');
-    if (synth.style !== current) {
-      writeSoulFile(config, 'style', synth.style);
-      changes.push('style updated');
-    }
+    appendJournal(config, 'style', `<!-- synthesis:${ts} -->\n${synth.style}`);
+    changes.push('style journaled');
   }
 
   if (synth.skill && synth.skill.length > 30) {
-    const current = readSoulFile(config, 'skill');
-    if (synth.skill !== current) {
-      writeSoulFile(config, 'skill', synth.skill);
-      changes.push('skill updated');
-    }
+    appendJournal(config, 'skill', `<!-- synthesis:${ts} -->\n${synth.skill}`);
+    changes.push('skill journaled');
   }
 
   return { updated: changes.length > 0, traits, changes };

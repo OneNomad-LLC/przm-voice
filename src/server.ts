@@ -20,7 +20,7 @@ import { updateCognitiveLoad, getVerbosityMultiplier } from './cognitive-load.js
 import { runConsolidation, recordSessionSummary } from './consolidation.js';
 import { detectSycophancyInAssistant } from './sycophancy.js';
 import type { SignalType, SessionState, BigFiveTraits, TraitState } from './types.js';
-import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE } from './types.js';
+import { SOUL_FILE_NAMES, DEFAULT_SESSION_STATE, MAX_PINNED_FEEDBACK, MAX_PINNED_FEEDBACK_WARN } from './types.js';
 import { getVersion } from './version.js';
 
 const config = loadConfig();
@@ -220,7 +220,7 @@ server.registerTool(
   'voice_state',
   {
     title: 'Emotional State',
-    description: 'Lightweight valence/arousal/cognitive-load snapshot. Pass values to memory_ingest and memory_search.',
+    description: 'Lightweight valence/arousal/cognitive-load snapshot. Pass values to memory-ingest and memory-search.',
     inputSchema: z.object({}),
   },
   async () => {
@@ -552,7 +552,13 @@ server.registerTool(
       recent.splice(idx, 1);
       movedFromRecent = true;
     }
-    if (!pinned.includes(entry)) pinned.push(entry);
+    if (!pinned.includes(entry)) {
+      if (pinned.length >= MAX_PINNED_FEEDBACK) {
+        // Hard cap: drop the oldest pinned entry to stay within budget.
+        pinned.shift();
+      }
+      pinned.push(entry);
+    }
 
     profile.recentFeedback = recent;
     profile.pinnedFeedback = pinned;
@@ -562,6 +568,9 @@ server.registerTool(
       pinned: entry,
       movedFromRecent,
       counts: { recent: recent.length, pinned: pinned.length },
+      ...(pinned.length >= MAX_PINNED_FEEDBACK_WARN && {
+        warning: `pinnedFeedback is at ${pinned.length} entries (warn threshold: ${MAX_PINNED_FEEDBACK_WARN}). Consider voice_feedback_unpin to prune stale entries.`,
+      }),
     });
   }
 );
@@ -629,6 +638,10 @@ server.registerTool(
         approvalRate: profile.stats.approvalRate,
         verbosity: profile.stylePreferences.verbosity,
         topicCount: Object.keys(profile.topicPreferences).length,
+        pinnedFeedbackCount: (profile.pinnedFeedback ?? []).length,
+        ...((profile.pinnedFeedback ?? []).length > MAX_PINNED_FEEDBACK_WARN && {
+          pinnedFeedbackWarning: `pinnedFeedback has ${profile.pinnedFeedback.length} entries — approaching the ${MAX_PINNED_FEEDBACK} cap. Run voice_feedback_unpin to prune.`,
+        }),
       },
       brainState: {
         bigFive: {
@@ -1004,15 +1017,13 @@ server.registerTool(
   'voice_synthesize',
   {
     title: 'Synthesize',
-    description: 'Analyze user messages, extract communication traits, update soul files, and process through brain systems.',
+    description: 'Analyze user messages, extract communication traits, update soul journal, and process through brain systems. Pass the last 10–20 user messages; each element is one message string.',
     inputSchema: z.object({
-      messages: z.string().describe('JSON array of user message strings.'),
+      messages: z.array(z.string()).min(1).describe('User message strings to analyze. One element per message.'),
     }),
   },
   async ({ messages }) => {
-    const parsed: string[] = JSON.parse(messages);
-
-    for (const msg of parsed) {
+    for (const msg of messages) {
       processUserMessage(msg);
     }
 
@@ -1020,7 +1031,7 @@ server.registerTool(
     // inferences immediately rather than waiting for the throttle.
     forceSaveTraitState();
 
-    const result = updateSoulFromSynthesis(config, parsed);
+    const result = updateSoulFromSynthesis(config, messages);
     const traitState = getTraitState();
 
     return json({
@@ -1050,23 +1061,22 @@ server.registerTool(
   'voice_analyze',
   {
     title: 'Analyze Style',
-    description: 'Analyze communication style without updating soul files. Emotional tone, Big Five, style vector.',
+    description: 'Analyze communication style without updating soul files. Returns emotional tone, Big Five snapshot, and style vector. Each element is one message string.',
     inputSchema: z.object({
-      messages: z.string().describe('JSON array of user message strings.'),
+      messages: z.array(z.string()).min(1).describe('User message strings to analyze. One element per message.'),
     }),
   },
   async ({ messages }) => {
-    const parsed: string[] = JSON.parse(messages);
-    const traits = analyzeUserMessages(parsed);
+    const traits = analyzeUserMessages(messages);
 
     const traitState = getTraitState();
     let tempBigFive = { ...traitState.bigFive };
-    for (const msg of parsed) {
+    for (const msg of messages) {
       const techRatio = detectTechnicalDomain(msg);
       tempBigFive = updateBigFive(tempBigFive, msg, techRatio);
     }
 
-    const styleVectors = parsed.map(computeStyleVector);
+    const styleVectors = messages.map(computeStyleVector);
     const avgStyle = {
       formality: avg(styleVectors.map(s => s.formality)),
       energy: avg(styleVectors.map(s => s.energy)),
@@ -1075,7 +1085,7 @@ server.registerTool(
       specificity: avg(styleVectors.map(s => s.specificity)),
     };
 
-    const tones = parsed.map(msg => detectEmotionalTone(msg));
+    const tones = messages.map(msg => detectEmotionalTone(msg));
     const avgTone: Record<string, number> = {};
     for (const key of Object.keys(tones[0] || {})) {
       avgTone[key] = avg(tones.map(t => (t as any)[key]));
@@ -1144,6 +1154,46 @@ server.registerTool(
     });
   }
 );
+
+// ─────────────────────────────────────────────────────────────────────
+// PERSONA-* BACKWARD COMPATIBILITY ALIASES
+// ─────────────────────────────────────────────────────────────────────
+// Tool names were renamed from persona_* → voice_* in v1.0.0.
+// These aliases keep existing installations working. The canonical names
+// are voice_*; the persona_* aliases will be removed in v2.
+//
+// Implementation: after all canonical registrations are done, copy each
+// registered-tool entry into the SDK's internal registry under the old
+// name. Shares the same handler and schema — no logic duplication.
+{
+  const rt = (server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools;
+  const aliases: [string, string][] = [
+    ['voice_state',              'persona_state'],
+    ['voice_signal',             'persona_signal'],
+    ['voice_profile',            'persona_profile'],
+    ['voice_stats',              'persona_stats'],
+    ['voice_proposals',          'persona_proposals'],
+    ['voice_apply',              'persona_apply'],
+    ['voice_reject',             'persona_reject'],
+    ['voice_evolve',             'persona_evolve'],
+    ['voice_read',               'persona_read'],
+    ['voice_edit',               'persona_edit'],
+    ['voice_init',               'persona_init'],
+    ['voice_soul_presets_list',  'persona_soul_presets_list'],
+    ['voice_soul_preset_read',   'persona_soul_preset_read'],
+    ['voice_soul_preset_apply',  'persona_soul_preset_apply'],
+    ['voice_role_list',          'persona_role_list'],
+    ['voice_role_clear',         'persona_role_clear'],
+    ['voice_role_read',          'persona_role_read'],
+    ['voice_role_edit',          'persona_role_edit'],
+    ['voice_journal_read',       'persona_journal_read'],
+    ['voice_synthesize',         'persona_synthesize'],
+    ['voice_analyze',            'persona_analyze'],
+  ];
+  for (const [canonical, alias] of aliases) {
+    if (rt[canonical]) rt[alias] = rt[canonical];
+  }
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────
 

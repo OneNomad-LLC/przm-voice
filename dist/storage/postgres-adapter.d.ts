@@ -12,6 +12,8 @@ export declare class PostgresStorageAdapter implements StorageAdapter {
     private readonly cache;
     private writeQueue;
     private initialized;
+    /** Last error swallowed by the write-behind queue, if any. */
+    lastWriteError: Error | null;
     constructor(opts: PostgresAdapterOptions);
     /**
      * Eager-load the tenant cache. Must be awaited before any reads.
@@ -29,6 +31,10 @@ export declare class PostgresStorageAdapter implements StorageAdapter {
     private loadRoles;
     private normalizeProfile;
     private enqueue;
+    /** Returns the most recent write-queue error, or null if all writes succeeded. */
+    healthCheck(): {
+        lastWriteError: string | null;
+    };
     private upsertState;
     getProfile(): BehavioralProfile | null;
     putProfile(profile: BehavioralProfile): void;

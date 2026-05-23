@@ -20,7 +20,7 @@
 
 import { parseArgs, probeHardware, gitSha, writeReceipt, repoRoot, createPersonaDriver, type Receipt } from '@onenomad/voice-bench-shared';
 import { PERSONA_NAMES, loadPersona, LABELED_MESSAGES, type PersonaName } from '@onenomad/voice-bench-personas';
-import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
+import type { SignalType } from '@onenomad/przm-voice/dist/types.js';
 
 const ALL_SIGNALS: SignalType[] = [
   'correction', 'approval', 'frustration', 'elaboration', 'simplification',

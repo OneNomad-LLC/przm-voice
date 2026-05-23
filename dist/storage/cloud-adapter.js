@@ -131,6 +131,8 @@ export class CloudStorageAdapter {
     cache;
     writeQueue = Promise.resolve();
     initialized = false;
+    /** Most recent write-queue error, if any. */
+    lastWriteError = null;
     constructor(opts) {
         this.apiUrl = opts.apiUrl.replace(/\/+$/, '');
         this.apiKey = opts.apiKey;
@@ -281,8 +283,15 @@ export class CloudStorageAdapter {
     enqueue(work) {
         this.writeQueue = this.writeQueue.then(work, work);
         this.writeQueue = this.writeQueue.catch((err) => {
-            console.error('[persona-cloud] write failed:', err);
+            this.lastWriteError = err instanceof Error ? err : new Error(String(err));
+            console.error('[przm-voice-cloud] write failed:', err);
         });
+    }
+    /** Returns the most recent write-queue error, or null if all writes succeeded. */
+    healthCheck() {
+        return {
+            lastWriteError: this.lastWriteError ? this.lastWriteError.message : null,
+        };
     }
     upsertState() {
         const body = {

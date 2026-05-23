@@ -89,7 +89,7 @@ export interface LabeledMessage {
   /** The signal-classification bench feeds these as `userMessage` to detectSignals. */
   userMessage: string;
   /** Ground-truth signal types that should fire. */
-  expected: import('@onenomad/persona-mcp/dist/types.js').SignalType[];
+  expected: import('@onenomad/przm-voice/dist/types.js').SignalType[];
 }
 
 /**

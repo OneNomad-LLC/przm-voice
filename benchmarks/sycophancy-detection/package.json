@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@onenomad/voice-bench-shared": "workspace:*",
-    "@onenomad/persona-mcp": "workspace:*"
+    "@onenomad/przm-voice": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

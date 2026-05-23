@@ -49,7 +49,7 @@ login options:
   PYRE_CREDENTIALS_FILE).
 
 Environment:
-  PERSONA_DATA_DIR        data directory (default ~/.claude/persona)
+  PRZM_VOICE_DATA_DIR     data directory (default ~/.claude/przm-voice; legacy PERSONA_DATA_DIR also accepted)
   PYRE_API_URL            default server URL for \`login\`
   PYRE_CREDENTIALS_FILE   credentials path override (default ~/.pyre/credentials.json)
 `;

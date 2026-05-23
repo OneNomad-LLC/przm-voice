@@ -1,10 +1,10 @@
--- Persona MCP — initial schema for Postgres-backed storage.
+-- przm-voice — initial schema for Postgres-backed storage.
 --
 -- All tables are tenant-scoped via tenant_id. The MCP server selects a
 -- single tenant_id from the TENANT_ID env var at startup; queries never
 -- run unscoped.
 
-CREATE TABLE IF NOT EXISTS persona_state (
+CREATE TABLE IF NOT EXISTS voice_state (
   tenant_id    text PRIMARY KEY,
   profile      jsonb,
   trait_state  jsonb,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS persona_state (
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS persona_signals (
+CREATE TABLE IF NOT EXISTS voice_signals (
   id          bigserial PRIMARY KEY,
   tenant_id   text NOT NULL,
   signal_type text NOT NULL,
@@ -21,8 +21,12 @@ CREATE TABLE IF NOT EXISTS persona_signals (
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS persona_signals_tenant_created_idx
-  ON persona_signals (tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS voice_signals_tenant_created_idx
+  ON voice_signals (tenant_id, created_at DESC);
+
+-- Efficient FIFO trim: offset-based DELETE uses (tenant_id, id DESC).
+CREATE INDEX IF NOT EXISTS voice_signals_tenant_id_idx
+  ON voice_signals (tenant_id, id DESC);
 
 CREATE TABLE IF NOT EXISTS persona_sessions (
   id          bigserial PRIMARY KEY,

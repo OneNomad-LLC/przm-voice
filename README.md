@@ -250,7 +250,7 @@ Then point your MCP client at `dist/server.js`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PERSONA_DATA_DIR` | `~/.claude/persona` | Where data gets stored |
+| `PRZM_VOICE_DATA_DIR` | `~/.claude/przm-voice` | Where data gets stored (legacy `PERSONA_DATA_DIR` also accepted) |
 
 ### Internal Defaults
 
@@ -346,7 +346,7 @@ The procedural bridge file at `~/.claude/procedural-bridge.json` remains on the 
 
 Schema lives in `migrations/postgres/001_init.sql`. Six tables, all keyed by `tenant_id`:
 
-- `persona_state` — one row per tenant, jsonb columns for profile, trait state, proposals; text for active role.
+- `voice_state` — one row per tenant, jsonb columns for profile, trait state, proposals; text for active role. (Renamed from `persona_state` in May 2026; migration `002_rename.sql` handles existing installs.)
 - `voice_signals` / `persona_sessions` — bigserial primary keys, FIFO-trimmed to 500 / 100 entries per tenant on insert.
 - `persona_soul`, `persona_journal`, `persona_roles` — composite primary key `(tenant_id, name)`, content as text.
 
@@ -374,7 +374,9 @@ Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres 
 
 ## Tools
 
-25 tools across ten groups. The standalone `voice_adapt` and `voice_procedural_sync` were folded into `voice_context` and `voice_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation. 1.0.0 adds the role overlay, journal namespace, and a bundled library of 9 soul presets + 10 role presets ported from Finch.
+28 tools across eleven groups. The standalone `voice_adapt` and `voice_procedural_sync` were folded into `voice_context` and `voice_consolidate` respectively in 1.0.0-beta.5 — adaptations ride along with the context dump, and the Engram procedural bridge auto-syncs during consolidation. 1.0.0 adds the role overlay, journal namespace, and a bundled library of 9 soul presets + 10 role presets ported from Finch.
+
+> **Legacy `persona_*` aliases kept for backward compatibility.** Every tool is also registered under its old `persona_*` name (e.g. `persona_synthesize`, `persona_role_list`). These aliases will be removed in v2.
 
 ### Context
 
@@ -394,6 +396,8 @@ Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres 
 |------|-------------|
 | `voice_profile` | The behavioral profile: preferences, satisfaction, topic patterns. |
 | `voice_stats` | High-level overview with signal counts, profile state, pending proposals, soul file sizes, and Engram bridge status. |
+| `voice_feedback_pin` | Pin a piece of explicit feedback so it persists beyond the 10-entry recent cap. |
+| `voice_feedback_unpin` | Remove a pinned feedback entry by index. |
 
 ### Evolution
 
@@ -416,49 +420,50 @@ Local development should keep `STORAGE_BACKEND` unset (or `file`). The Postgres 
 
 | Tool | What it does |
 |------|-------------|
-| `persona_soul_presets_list` | List the 9 bundled SOUL.md presets ported from Finch (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). |
-| `persona_soul_preset_read` | Read a bundled preset without applying it. |
-| `persona_soul_preset_apply` | Apply a preset by writing its content into PERSONALITY.md. STYLE.md and SKILL.md stay untouched. |
+| `voice_soul_presets_list` | List the 9 bundled SOUL.md presets ported from Finch (default, coach, mentor, devils-advocate, reflective-listener, creative-partner, dungeon-master, personal-assistant, study-buddy). |
+| `voice_soul_preset_read` | Read a bundled preset without applying it. |
+| `voice_soul_preset_apply` | Apply a preset by writing its content into PERSONALITY.md. STYLE.md and SKILL.md stay untouched. |
 
 ### Roles (domain overlays)
 
 | Tool | What it does |
 |------|-------------|
-| `persona_role_list` | List bundled and user-defined roles, plus the active one. |
+| `voice_role_list` | List bundled and user-defined roles, plus the active one. |
 | `voice_role_set` | Activate a role globally. |
-| `persona_role_clear` | Clear the active role; soul-only context resumes. |
-| `persona_role_read` | Read a role file. Returns the user override if present, else the bundled default. |
-| `persona_role_edit` | Override or create a custom role at `dataDir/roles/<name>/ROLE.md`. |
+| `voice_role_clear` | Clear the active role; soul-only context resumes. |
+| `voice_role_read` | Read a role file. Returns the user override if present, else the bundled default. |
+| `voice_role_edit` | Override or create a custom role at `dataDir/roles/<name>/ROLE.md`. |
 
 ### Journal (Voice's auto-derived notes)
 
 | Tool | What it does |
 |------|-------------|
-| `persona_journal_read` | Read Voice's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
+| `voice_journal_read` | Read Voice's auto-derived notes — the destination for applied evolution proposals, layered onto the soul at prompt-build time. |
 | `voice_journal_clear` | Wipe the journal without touching the user-edited soul. |
 
 ### Synthesis
 
 | Tool | What it does |
 |------|-------------|
-| `persona_synthesize` | Analyze messages and update soul files from detected traits. Also processes through all brain systems. |
-| `persona_analyze` | Full analysis (communication traits, Big Five, style vector, emotional tone) without changing anything. |
+| `voice_synthesize` | Analyze messages and update soul files from detected traits. Also processes through all brain systems. |
+| `voice_analyze` | Full analysis (communication traits, Big Five, style vector, emotional tone) without changing anything. |
 
 ### Consolidation
 
 | Tool | What it does |
 |------|-------------|
 | `voice_consolidate` | Run the between-session consolidation pass. Decays stale emotions, detects drift, checks for sycophancy, and auto-syncs the Engram procedural bridge (replaces the old `voice_procedural_sync`). Also runs automatically on startup if >24h since last consolidation. |
+| `voice_detect_sycophancy` | Scan assistant text for sycophantic patterns: flattery openers, walk-backs without new evidence, position flips, and agreement cascades. Rules-based; no LLM in the loop. |
 
 ### Bridge
 
 | Tool | What it does |
 |------|-------------|
-| `persona_state` | Lightweight bridge endpoint for Engram — returns current emotional valence, arousal, and cognitive load so Engram can weight memory importance and gate search results. |
+| `voice_state` | Lightweight bridge endpoint for Engram — returns current emotional valence, arousal, and cognitive load so Engram can weight memory importance and gate search results. |
 
 ## Slash Commands
 
-These work in any MCP-compatible client (Claude Code, Cursor, etc.). The MCP server advertises them in its instructions so the agent knows how to handle them. SKILL.md files are also included for platforms that discover skills from the filesystem.
+These work in any MCP-compatible client (Claude Code, Cursor, etc.). The MCP server advertises them in its instructions so the agent knows how to handle them.
 
 | Command | What it does |
 |---------|-------------|
@@ -466,7 +471,7 @@ These work in any MCP-compatible client (Claude Code, Cursor, etc.). The MCP ser
 | `/persona-soul [file] [edit]` | View or edit soul files (personality, style, skill). No args shows all three. With "edit", enter interactive editing. |
 | `/persona-profile [detailed]` | See what the system has learned: satisfaction, style prefs, Big Five traits, emotional associations, topic patterns. "detailed" shows full signal counts. |
 | `/persona-analyze [sync]` | Analyze communication style from recent messages. Read-only by default. "sync" updates soul files from detected traits. |
-| `/persona-reset [preset]` | Reset to defaults or load a preset: pair-programmer, mentor, analyst, creative, minimal. Signals and profile are preserved. |
+| `/persona-reset [preset]` | Reset to defaults or load a preset: `default`, `coach`, `mentor`, `devils-advocate`, `reflective-listener`, `creative-partner`, `dungeon-master`, `personal-assistant`, `study-buddy`. Applies via `voice_soul_preset_apply`. Signals and profile are preserved. |
 | `/persona-tune <instruction>` | Quick personality tweak via natural language. "be more direct", "less verbose", "stop summarizing". Records signals and applies immediately. |
 
 ### Installing Slash Commands for Claude Code
@@ -565,7 +570,7 @@ przm Memory learns that you prefer TypeScript over Python. przm Voice learns tha
 
 When both MCP servers are running, they coordinate through three mechanisms:
 
-1. **Emotion-weighted memory importance.** Voice exposes `persona_state` with current emotional valence, arousal, and cognitive load. Memory calls this during ingestion — high-arousal negative emotions boost memory importance by up to 30%, so frustrated corrections get remembered more strongly than neutral facts.
+1. **Emotion-weighted memory importance.** Voice exposes `voice_state` with current emotional valence, arousal, and cognitive load. Memory calls this during ingestion — high-arousal negative emotions boost memory importance by up to 30%, so frustrated corrections get remembered more strongly than neutral facts.
 
 2. **Cognitive-load-gated search.** When Voice detects cognitive overload, Memory's search receives the load signal and returns only the top 3 high-importance memories instead of the full set. Less noise when you're already overwhelmed.
 

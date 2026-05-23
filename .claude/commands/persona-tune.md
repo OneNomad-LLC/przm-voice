@@ -8,7 +8,7 @@ Quick personality adjustment: $ARGUMENTS
    - "less formal" / "keep it casual" -> signal type `style_correction`
    - "stop doing X" / "don't X" -> signal type `correction`
    - "I like when you X" / "keep doing X" -> signal type `praise`
-3. Apply the change immediately by calling `voice_adapt` to get updated adaptations
+3. Apply the change immediately by calling `voice_context` (with `adaptationsOnly: true`) to get updated adaptations
 4. If the instruction is clear enough, offer to write it into the appropriate soul file via `voice_edit` for permanent effect
 5. Confirm what changed
 

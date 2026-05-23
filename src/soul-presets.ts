@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PersonaConfig } from './types.js';
-import { writeSoulFile } from './soul.js';
+import { appendJournal } from './journal.js';
 
 /**
  * Soul presets — bundled SOUL.md templates the user can load into their
@@ -69,6 +69,11 @@ export function readSoulPreset(name: string): string {
 export function applySoulPreset(config: PersonaConfig, name: string): { applied: boolean; bytes?: number } {
   const content = readSoulPreset(name);
   if (!content) return { applied: false };
-  writeSoulFile(config, 'personality', content);
+  // Write to the journal, not directly to soul. Soul is user territory;
+  // the journal is przm-voice territory. The preset appears in the prompt
+  // via buildSoulContext(full). The user can promote it to soul explicitly
+  // via voice_edit if they want it permanent.
+  const ts = new Date().toISOString();
+  appendJournal(config, 'personality', `<!-- preset:${name}:${ts} -->\n${content}`);
   return { applied: true, bytes: content.length };
 }

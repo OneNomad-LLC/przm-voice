@@ -34,6 +34,10 @@ export interface StylePreferences {
     avoidPatterns: string[];
     preferredPatterns: string[];
 }
+/** Soft cap on pinnedFeedback length. voice_feedback_pin enforces this;
+ *  voice_stats warns when pinned count exceeds MAX_PINNED_FEEDBACK_WARN. */
+export declare const MAX_PINNED_FEEDBACK = 50;
+export declare const MAX_PINNED_FEEDBACK_WARN = 30;
 export interface BehavioralProfile {
     stats: {
         totalSignals: number;

@@ -96,6 +96,11 @@ export interface StylePreferences {
   preferredPatterns: string[];  // Things user likes ("show code first", "be direct")
 }
 
+/** Soft cap on pinnedFeedback length. voice_feedback_pin enforces this;
+ *  voice_stats warns when pinned count exceeds MAX_PINNED_FEEDBACK_WARN. */
+export const MAX_PINNED_FEEDBACK = 50;
+export const MAX_PINNED_FEEDBACK_WARN = 30;
+
 export interface BehavioralProfile {
   stats: {
     totalSignals: number;
@@ -111,7 +116,7 @@ export interface BehavioralProfile {
     signalCount: number;
   }>;
   recentFeedback: string[];     // Last 10 explicit feedback items (FIFO)
-  pinnedFeedback: string[];     // User-tagged entries; unbounded
+  pinnedFeedback: string[];     // User-tagged entries; capped at MAX_PINNED_FEEDBACK
   lastUpdated: string;
 }
 

@@ -156,9 +156,24 @@ export class PostgresStorageAdapter implements StorageAdapter {
   private readonly cache: CacheState;
   private writeQueue: Promise<void> = Promise.resolve();
   private initialized = false;
+  /** Last error swallowed by the write-behind queue, if any. */
+  lastWriteError: Error | null = null;
 
   constructor(opts: PostgresAdapterOptions) {
-    this.pool = opts.pool ?? new Pool({ connectionString: opts.databaseUrl });
+    // Default SSL for cloud Postgres providers (Supabase, Neon, RDS, Heroku).
+    // Skipped for localhost / 127.0.0.1 where SSL is usually unavailable.
+    // Set PRZM_VOICE_PG_SSL=false to opt out regardless of hostname.
+    const sslEnv = process.env.PRZM_VOICE_PG_SSL;
+    const isLocal =
+      opts.databaseUrl.includes('localhost') ||
+      opts.databaseUrl.includes('127.0.0.1');
+    const ssl =
+      sslEnv === 'false'
+        ? false
+        : isLocal
+          ? false
+          : { rejectUnauthorized: true };
+    this.pool = opts.pool ?? new Pool({ connectionString: opts.databaseUrl, ssl });
     this.tenantId = opts.tenantId;
     this.cache = {
       profile: null,
@@ -290,12 +305,20 @@ export class PostgresStorageAdapter implements StorageAdapter {
 
   private enqueue(work: () => Promise<void>): void {
     this.writeQueue = this.writeQueue.then(work, work);
-    // Swallow errors here so a single failed write doesn't poison the
-    // chain. Errors are logged; loud failure modes (e.g. lost connection)
-    // surface through flush() at shutdown.
-    this.writeQueue = this.writeQueue.catch((err) => {
-      console.error('[persona-pg] write failed:', err);
+    // Swallow errors so a single failed write doesn't poison the chain.
+    // Track the most recent failure in lastWriteError so callers can
+    // surface it (e.g. via healthCheck() or a tool storageWarning field).
+    this.writeQueue = this.writeQueue.catch((err: unknown) => {
+      this.lastWriteError = err instanceof Error ? err : new Error(String(err));
+      console.error('[przm-voice-pg] write failed:', err);
     });
+  }
+
+  /** Returns the most recent write-queue error, or null if all writes succeeded. */
+  healthCheck(): { lastWriteError: string | null } {
+    return {
+      lastWriteError: this.lastWriteError ? this.lastWriteError.message : null,
+    };
   }
 
   private upsertState(): void {
@@ -377,23 +400,33 @@ export class PostgresStorageAdapter implements StorageAdapter {
     }
     const tenantId = this.tenantId;
     this.enqueue(async () => {
-      await this.pool.query(
-        'INSERT INTO voice_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)',
-        [tenantId, signal.type, JSON.stringify(signal)],
-      );
-      // FIFO trim — delete oldest beyond cap. id is monotonic so we
-      // can ORDER BY id DESC to find the cutoff cheaply.
-      await this.pool.query(
-        `DELETE FROM voice_signals
-         WHERE tenant_id = $1
-           AND id NOT IN (
+      const client = await this.pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          'INSERT INTO voice_signals (tenant_id, signal_type, payload) VALUES ($1, $2, $3::jsonb)',
+          [tenantId, signal.type, JSON.stringify(signal)],
+        );
+        // Offset-based FIFO trim: find the id at position maxSignals-1
+        // (the last keeper) and delete everything with id ≤ that cutoff.
+        // Uses (tenant_id, id DESC) index — avoids the O(n×m) NOT IN.
+        await client.query(
+          `DELETE FROM voice_signals
+           WHERE tenant_id = $1 AND id <= (
              SELECT id FROM voice_signals
-             WHERE tenant_id = $1
-             ORDER BY id DESC
-             LIMIT $2
+              WHERE tenant_id = $1
+              ORDER BY id DESC
+              LIMIT 1 OFFSET ($2 - 1)
            )`,
-        [tenantId, maxSignals],
-      );
+          [tenantId, maxSignals],
+        );
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     });
   }
 
@@ -418,21 +451,31 @@ export class PostgresStorageAdapter implements StorageAdapter {
     }
     const tenantId = this.tenantId;
     this.enqueue(async () => {
-      await this.pool.query(
-        'INSERT INTO persona_sessions (tenant_id, summary) VALUES ($1, $2::jsonb)',
-        [tenantId, JSON.stringify(session)],
-      );
-      await this.pool.query(
-        `DELETE FROM persona_sessions
-         WHERE tenant_id = $1
-           AND id NOT IN (
+      const client = await this.pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          'INSERT INTO persona_sessions (tenant_id, summary) VALUES ($1, $2::jsonb)',
+          [tenantId, JSON.stringify(session)],
+        );
+        // Offset-based FIFO trim (cap = 100 sessions).
+        await client.query(
+          `DELETE FROM persona_sessions
+           WHERE tenant_id = $1 AND id <= (
              SELECT id FROM persona_sessions
-             WHERE tenant_id = $1
-             ORDER BY id DESC
-             LIMIT 100
+              WHERE tenant_id = $1
+              ORDER BY id DESC
+              LIMIT 1 OFFSET 99
            )`,
-        [tenantId],
-      );
+          [tenantId],
+        );
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     });
   }
 

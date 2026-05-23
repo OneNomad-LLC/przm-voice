@@ -1,13 +1,13 @@
 {
-  "name": "persona",
+  "name": "przm-voice",
   "description": "Brain-inspired personality evolution for AI agents. Emotional tone detection, Big Five trait inference, style mirroring, cognitive load awareness, and evolution proposals. Learns how you communicate and adapts over time.",
   "version": "1.0.0-beta.1",
   "author": {
     "name": "Matt Stvartak",
     "email": "matt@onenomad.dev"
   },
-  "homepage": "https://github.com/OneNomad-LLC/persona-mcp",
-  "repository": "https://github.com/OneNomad-LLC/persona-mcp",
+  "homepage": "https://github.com/OneNomad-LLC/przm-voice",
+  "repository": "https://github.com/OneNomad-LLC/przm-voice",
   "license": "Apache-2.0",
   "keywords": ["personality", "ai", "mcp", "adaptation", "emotional-intelligence", "big-five"]
 }

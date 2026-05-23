@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
+import type { SignalType } from '@onenomad/przm-voice/dist/types.js';
 
 export type PersonaName = 'alex' | 'morgan' | 'jordan' | 'sam';
 export const PERSONA_NAMES: PersonaName[] = ['alex', 'morgan', 'jordan', 'sam'];

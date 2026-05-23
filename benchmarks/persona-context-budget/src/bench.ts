@@ -29,9 +29,9 @@ import {
   PERSONA_NAMES, loadPersona, reactFor, preferenceScore,
   PROMPT_PAIRS, type PersonaName,
 } from '@onenomad/voice-bench-personas';
-import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
-import { buildSoulContext, readAllSoulFiles } from '@onenomad/persona-mcp/dist/soul.js';
-import { readAllJournalFiles } from '@onenomad/persona-mcp/dist/journal.js';
+import type { SignalType } from '@onenomad/przm-voice/dist/types.js';
+import { buildSoulContext, readAllSoulFiles } from '@onenomad/przm-voice/dist/soul.js';
+import { readAllJournalFiles } from '@onenomad/przm-voice/dist/journal.js';
 import { predictPreference } from '@onenomad/voice-bench-style-recall';
 
 const BUDGETS = [256, 512, 1024, 2048, 4096] as const;

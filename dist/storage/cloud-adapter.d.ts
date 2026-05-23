@@ -12,6 +12,8 @@ export declare class CloudStorageAdapter implements StorageAdapter {
     private readonly cache;
     private writeQueue;
     private initialized;
+    /** Most recent write-queue error, if any. */
+    lastWriteError: Error | null;
     constructor(opts: CloudAdapterOptions);
     init(): Promise<void>;
     flush(): Promise<void>;
@@ -21,6 +23,10 @@ export declare class CloudStorageAdapter implements StorageAdapter {
     private request;
     private loadState;
     private enqueue;
+    /** Returns the most recent write-queue error, or null if all writes succeeded. */
+    healthCheck(): {
+        lastWriteError: string | null;
+    };
     private upsertState;
     getProfile(): BehavioralProfile | null;
     putProfile(profile: BehavioralProfile): void;

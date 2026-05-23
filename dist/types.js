@@ -1,5 +1,9 @@
 // ── Soul Files ───────────────────────────────────────────────────────
 export const SOUL_FILE_NAMES = ['personality', 'style', 'skill'];
+/** Soft cap on pinnedFeedback length. voice_feedback_pin enforces this;
+ *  voice_stats warns when pinned count exceeds MAX_PINNED_FEEDBACK_WARN. */
+export const MAX_PINNED_FEEDBACK = 50;
+export const MAX_PINNED_FEEDBACK_WARN = 30;
 export const DEFAULT_STYLE_PREFERENCES = {
     verbosity: 0,
     opinionStrength: 0,

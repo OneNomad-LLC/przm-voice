@@ -35,7 +35,7 @@ import {
   detectSycophancyInAssistant,
   type SycophancySignalType,
   type DetectedSycophancySignal,
-} from '@onenomad/persona-mcp/dist/sycophancy.js';
+} from '@onenomad/przm-voice/dist/sycophancy.js';
 import { FIXTURES, ALL_SYCOPHANCY_TYPES, FIXTURE_COUNT_BY_CATEGORY, type SycophancyFixture } from './fixtures.js';
 
 // ── Scoring ──────────────────────────────────────────────────────────

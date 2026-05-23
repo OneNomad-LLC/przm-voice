@@ -30,7 +30,7 @@ importers:
 
   benchmarks/_shared:
     dependencies:
-      '@onenomad/persona-mcp':
+      '@onenomad/przm-voice':
         specifier: workspace:*
         version: link:../..
     devDependencies:
@@ -46,18 +46,18 @@ importers:
 
   benchmarks/persona-context-budget:
     dependencies:
-      '@onenomad/persona-bench-personas':
-        specifier: workspace:*
-        version: link:../personas
-      '@onenomad/persona-bench-shared':
-        specifier: workspace:*
-        version: link:../_shared
-      '@onenomad/persona-bench-style-recall':
-        specifier: workspace:*
-        version: link:../style-recall
-      '@onenomad/persona-mcp':
+      '@onenomad/przm-voice':
         specifier: workspace:*
         version: link:../..
+      '@onenomad/voice-bench-personas':
+        specifier: workspace:*
+        version: link:../personas
+      '@onenomad/voice-bench-shared':
+        specifier: workspace:*
+        version: link:../_shared
+      '@onenomad/voice-bench-style-recall':
+        specifier: workspace:*
+        version: link:../style-recall
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -71,7 +71,7 @@ importers:
 
   benchmarks/personas:
     dependencies:
-      '@onenomad/persona-mcp':
+      '@onenomad/przm-voice':
         specifier: workspace:*
         version: link:../..
     devDependencies:
@@ -84,15 +84,15 @@ importers:
 
   benchmarks/signal-classification:
     dependencies:
-      '@onenomad/persona-bench-personas':
-        specifier: workspace:*
-        version: link:../personas
-      '@onenomad/persona-bench-shared':
-        specifier: workspace:*
-        version: link:../_shared
-      '@onenomad/persona-mcp':
+      '@onenomad/przm-voice':
         specifier: workspace:*
         version: link:../..
+      '@onenomad/voice-bench-personas':
+        specifier: workspace:*
+        version: link:../personas
+      '@onenomad/voice-bench-shared':
+        specifier: workspace:*
+        version: link:../_shared
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -106,15 +106,34 @@ importers:
 
   benchmarks/style-recall:
     dependencies:
-      '@onenomad/persona-bench-personas':
-        specifier: workspace:*
-        version: link:../personas
-      '@onenomad/persona-bench-shared':
-        specifier: workspace:*
-        version: link:../_shared
-      '@onenomad/persona-mcp':
+      '@onenomad/przm-voice':
         specifier: workspace:*
         version: link:../..
+      '@onenomad/voice-bench-personas':
+        specifier: workspace:*
+        version: link:../personas
+      '@onenomad/voice-bench-shared':
+        specifier: workspace:*
+        version: link:../_shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  benchmarks/sycophancy-detection:
+    dependencies:
+      '@onenomad/przm-voice':
+        specifier: workspace:*
+        version: link:../..
+      '@onenomad/voice-bench-shared':
+        specifier: workspace:*
+        version: link:../_shared
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

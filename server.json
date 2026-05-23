@@ -1,24 +1,24 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.onenomad-llc/persona-mcp",
-  "description": "Persona MCP server for Claude Code — evolving personality, behavioral signals, style adaptations, and soul file management. Local file-based store; no API keys needed.",
+  "name": "io.github.onenomad-llc/przm-voice",
+  "description": "przm Voice MCP server — evolving personality, behavioral signals, style adaptations, and soul file management. Local file-based store; no API keys needed.",
   "repository": {
-    "url": "https://github.com/OneNomad-LLC/persona-mcp",
+    "url": "https://github.com/OneNomad-LLC/przm-voice",
     "source": "github"
   },
   "version": "1.0.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "@onenomad/persona-mcp",
+      "identifier": "@onenomad/przm-voice",
       "version": "1.0.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "name": "PERSONA_DATA_DIR",
-          "description": "Directory for soul files, evolution journals, and presets. Defaults to ~/.claude/persona.",
+          "name": "PRZM_VOICE_DATA_DIR",
+          "description": "Directory for soul files, evolution journals, and presets. Defaults to ~/.claude/przm-voice. Legacy name PERSONA_DATA_DIR is also accepted.",
           "isRequired": false,
           "isSecret": false,
           "format": "filepath"

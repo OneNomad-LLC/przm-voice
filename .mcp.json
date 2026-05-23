@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "persona": {
+    "przm-voice": {
       "command": "node",
       "args": ["{pluginDir}/dist/server.js"],
       "env": {
-        "PERSONA_SERVER": "true"
+        "PRZM_VOICE_SERVER": "true"
       }
     }
   }

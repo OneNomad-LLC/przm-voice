@@ -182,7 +182,7 @@ export async function runLogin(argv) {
         initRes = await fetch(`${normalizedServer}${DEVICE_CODE_BASE}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device_name: hostname(), package_name: 'persona' }),
+            body: JSON.stringify({ device_name: hostname(), package_name: 'przm-voice' }),
         });
     }
     catch (err) {

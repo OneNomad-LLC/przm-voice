@@ -39,7 +39,7 @@ import {
   PERSONA_NAMES, loadPersona, reactFor, preferenceScore,
   PROMPT_PAIRS, type PersonaName, type PersonaSpec,
 } from '@onenomad/voice-bench-personas';
-import type { SignalType } from '@onenomad/persona-mcp/dist/types.js';
+import type { SignalType } from '@onenomad/przm-voice/dist/types.js';
 
 import { predictPreference } from './prediction.js';
 
