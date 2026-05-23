@@ -674,13 +674,17 @@ server.registerTool('voice_proposals', {
 });
 server.registerTool('voice_apply', {
     title: 'Apply Proposal',
-    description: 'Apply a pending evolution proposal.',
+    description: 'Apply a pending evolution proposal. The proposal content lands in the journal (not in the user-edited soul). Returns the proposal type, journal target, and bytes written.',
     inputSchema: z.object({
         proposalId: z.string().describe('Proposal ID.'),
     }),
 }, async ({ proposalId }) => {
     const result = applyProposal(config, proposalId);
-    return text(result.message);
+    return json({
+        applied: result.success,
+        proposalId,
+        message: result.message,
+    });
 });
 server.registerTool('voice_reject', {
     title: 'Reject Proposal',
@@ -694,7 +698,7 @@ server.registerTool('voice_reject', {
 });
 server.registerTool('voice_evolve', {
     title: 'Generate Proposals',
-    description: 'Manually trigger evolution proposal generation from accumulated signals.',
+    description: 'Manually trigger evolution proposal generation from accumulated signals. Normally auto-fires every `proposalThreshold` (default 12) signals — only call this to force early generation, e.g. when synthesizing a session before /compact.',
     inputSchema: z.object({}),
 }, async () => {
     const signals = loadSignals(config);
@@ -735,8 +739,8 @@ server.registerTool('voice_edit', {
     return text(`Updated ${file} soul file (${content.length} chars).`);
 });
 server.registerTool('voice_init', {
-    title: 'Initialize',
-    description: 'Reset soul files to defaults. Won\'t overwrite existing.',
+    title: 'Seed Soul Files',
+    description: 'Seed soul files with bundled defaults if missing. No-op when files exist — never overwrites user edits. To re-apply a bundled preset on top of existing files, use voice_soul_preset_apply.',
     inputSchema: z.object({}),
 }, async () => {
     const files = initSoulFiles(config);
@@ -894,9 +898,9 @@ server.registerTool('voice_journal_remove', {
 // ─────────────────────────────────────────────────────────────────────
 server.registerTool('voice_synthesize', {
     title: 'Synthesize',
-    description: 'Analyze user messages, extract communication traits, update soul journal, and process through brain systems. Pass the last 10–20 user messages; each element is one message string.',
+    description: 'Analyze user messages, extract communication traits, update the journal layer, and process through brain systems. Call after at least 5 user messages have accumulated this session — fewer than that and the personality-trait writes are gated off (style traits gate at 3). Pass the most recent 10–20 user messages; one element per message string. Output writes to the journal namespace, NOT to user-edited soul files.',
     inputSchema: z.object({
-        messages: z.array(z.string()).min(1).describe('User message strings to analyze. One element per message.'),
+        messages: z.array(z.string()).min(1).describe('User message strings to analyze. One element per message. ≥5 recommended for personality traits, ≥3 for style traits.'),
     }),
 }, async ({ messages }) => {
     for (const msg of messages) {
@@ -974,7 +978,7 @@ server.registerTool('voice_analyze', {
 // ─────────────────────────────────────────────────────────────────────
 server.registerTool('voice_consolidate', {
     title: 'Consolidate',
-    description: 'Between-session consolidation: decay emotions, detect drift, check contradictions, promote patterns, sync Engram bridge.',
+    description: 'Between-session consolidation: decay emotional associations, detect style drift, flag contradictions, prune old proposals, sync the Engram bridge. SIDE EFFECT: resets session state (emotional tone, message buffer) — call between sessions or after explicit checkpoints, NOT mid-task. Also fires automatically on server startup if the last consolidation was >24h ago.',
     inputSchema: z.object({}),
 }, async () => {
     const signals = loadSignals(config);

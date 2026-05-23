@@ -127,6 +127,31 @@ takes arrays directly, no JSON.parse.
 
 ---
 
+## Resolved (2026-05-23) — Backlog sweep #1: tool descriptions
+
+Five tool descriptions in `src/server.ts` updated to surface
+load-bearing trigger / side-effect / cadence information that
+callers previously had to read source to learn:
+
+- **`voice_apply`** now returns JSON
+  (`{applied, proposalId, message}`) instead of a raw string the
+  caller couldn't parse.
+- **`voice_evolve`** description names the auto-cadence (fires
+  every `proposalThreshold` signals, default 12) so agents don't
+  spam it.
+- **`voice_init`** title + description picked one verb (seed,
+  not "reset") and made the no-op-when-files-exist guarantee
+  explicit. Pointed callers at `voice_soul_preset_apply` for the
+  destructive variant.
+- **`voice_synthesize`** description added the ≥5-message
+  threshold for personality (≥3 for style) and named the journal
+  write destination explicitly.
+- **`voice_consolidate`** description added the session-state
+  reset side effect and the 24h auto-startup behavior — both
+  documented in code but invisible to MCP callers before.
+
+---
+
 ## Resolved (2026-05-23) — V-012: Move sycophancy detection out of MCP
 
 **Was:** `voice_detect_sycophancy` was an MCP tool exposed to the
